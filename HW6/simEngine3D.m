@@ -60,9 +60,9 @@ classdef simEngine3D < handle
 			end
 			
 			% Parse input times
-			obj.t_i = obj.input.time(1);
-			obj.dt = obj.input.time(2);
-			obj.t_f = obj.input.time(3);
+			%obj.t_i = obj.input.time(1);
+			%obj.dt = obj.input.time(2);
+			%obj.t_f = obj.input.time(3);
 			
 			
 		end
@@ -120,117 +120,131 @@ classdef simEngine3D < handle
 				end
 			end
 			
-			for tt = 1
-				% Get Phi_G, nu_G, gamma_G, Jacobian_G
-				% Number of euler parameter constraints
-				obj.N_EPCons = obj.N_Bodies;
-				% Number of constraints in total (Note: N_GCons contains both
-				% kinematic and driving)
-				obj.N_Cons = obj.N_GCons + obj.N_EPCons;
+			
+			% Number of euler parameter constraints
+			obj.N_EPCons = obj.N_Bodies;
+			% Number of constraints in total (Note: N_GCons contains both
+			% kinematic and driving)
+			obj.N_Cons = obj.N_GCons + obj.N_EPCons;
 
-				% Initialize global Phi, nu, gamma, and Jacobian
-				obj.Phi_G = zeros(obj.N_Cons, 1);
-				obj.nu_G = zeros(obj.N_Cons, 1);
-				obj.gamma_G = zeros(obj.N_Cons, 1);
-				obj.Jacobian_G = zeros(obj.N_Cons, obj.N_params);
-
-				% Compute Phi_G
-				% Calculate from each GCon
-				for k = 1:obj.N_GCons
-					i = obj.input.constraints{k}.i;
-					j = obj.input.constraints{k}.j;
+			% Initialize global Phi, nu, gamma, and Jacobian
+			obj.Phi_G = zeros(obj.N_Cons, 1);
+			obj.nu_G = zeros(obj.N_Cons, 1);
+			obj.gamma_G = zeros(obj.N_Cons, 1);
+			obj.Jacobian_G = zeros(obj.N_Cons, obj.N_params);
+			
+			
+			% Get Phi_G, nu_G, gamma_G, Jacobian_G
+			for tt = 1:obj.N_t
+				if tt > 1
+					% For all but the first timestep the initial guess for
+					% q and q_dot are obtained from the previous time step
+					obj.q(:,tt) = obj.q(:,tt-1);
+					obj.q_dot(:,tt) = obj.q_dot(:,tt-1);
 					
-% 					r_i = obj.q(7*(i-1)+1:7*(i-1)+7-4,tt);
-% 					r_j = obj.q(7*(j-1)+1:7*(j-1)+7-4,tt);
-% 					
-% 					p_i = obj.q(7*(i-1)+1+3:7*(i-1)+7,tt);
-% 					p_j = obj.q(7*(j-1)+1+3:7*(j-1)+7,tt);
-% 					
-% 					p_i_dot = obj.q_dot(7*(i-1)+1+3:7*(i-1)+7,tt);
-% 					p_j_dot = obj.q_dot(7*(j-1)+1+3:7*(j-1)+7,tt);
-%
-% 					q_i = obj.q(7*(i-1)+1:7*(i-1)+7,tt);
-% 					q_j = obj.q(7*(j-1)+1:7*(j-1)+7,tt);
-% 
-% 					q_i_dot = obj.q_dot(7*(i-1)+1:7*(i-1)+7,tt);
-% 					q_j_dot = obj.q_dot(7*(j-1)+1:7*(j-1)+7,tt);
-
-					% First body
-					% If the first body is ground
-					if i == 0
-						q_i = [0, 0, 0, 1, 0, 0, 0]';
-						q_i_dot = [0, 0, 0, 0, 0, 0, 0]';
-					% Otherwise coordinates are from q
-					else
-						q_i = obj.q(7*(i-1)+1:7*(i-1)+7,tt);
-						q_i_dot = obj.q_dot(7*(i-1)+1:7*(i-1)+7,tt);
-					end
-					
-					% Second body
-					% If the second body is ground
-					if j == 0
-						q_j = [0, 0, 0, 1, 0, 0, 0]';
-						q_j_dot = [0, 0, 0, 0, 0, 0, 0]';
-					% Otherwise coordinates are from q
-					else
-						q_j = obj.q(7*(j-1)+1:7*(j-1)+7,tt);
-						q_j_dot = obj.q_dot(7*(j-1)+1:7*(j-1)+7,tt);
-					end
-					
-					% Get a handle for the GCon type call
-					Phi_handle = str2func(obj.input.constraints{k}.type);
-					
-					% Populate global Phi, nu, gamma, Jacobian
-					obj.Phi_G(k,1) = Phi_handle(obj.input.constraints{k}, q_i, q_j,  q_i_dot, q_j_dot, obj.f(k,tt), obj.f_dot(k,tt), obj.f_ddot(k,tt), 'Phi');
-					obj.nu_G(k,1) = Phi_handle(obj.input.constraints{k}, q_i, q_j,  q_i_dot, q_j_dot, obj.f(k,tt), obj.f_dot(k,tt), obj.f_ddot(k,tt), 'nu');
-					obj.gamma_G(k,1) = Phi_handle(obj.input.constraints{k}, q_i, q_j,  q_i_dot, q_j_dot, obj.f(k,tt), obj.f_dot(k,tt), obj.f_ddot(k,tt), 'gamma');
-					Jacobian_temp = Phi_handle(obj.input.constraints{k}, q_i, q_j,  q_i_dot, q_j_dot, obj.f(k,tt), obj.f_dot(k,tt), obj.f_ddot(k,tt), 'Jacobian');
-					
-					% Jacobian expanded to global size
-					% If the first body is ground
-					if i == 0
-						obj.Jacobian_G(k,7*(j-1)+1:7*(j-1)+3) = Jacobian_temp(1:3);
-						obj.Jacobian_G(k,7*(j-1)+4:7*(j-1)+7) = Jacobian_temp(4:7);
-					% If the second body is ground
-					elseif j == 0
-						obj.Jacobian_G(k,7*(i-1)+1:7*(i-1)+3) = Jacobian_temp(1:3);
-						obj.Jacobian_G(k,7*(i-1)+4:7*(i-1)+7) = Jacobian_temp(4:7);
-					else
-						obj.Jacobian_G(k,7*(i-1)+1:7*(i-1)+3) = Jacobian_temp(1:3);
-						obj.Jacobian_G(k,7*(i-1)+4:7*(i-1)+7) = Jacobian_temp(4:7);
+					% Newton-Raphson iterative approach to solving the
+					% current q
+					dq = 1;
+					tol = 1e-3;
+					k = 0;
+					while abs(dq) > tol
+						% Compute Phi_G, nu_G, gamma_G, Jacobian_G
+						Global_Phi_nu_gamma_Jacobian(obj, tt);
 						
-						obj.Jacobian_G(k,7*(j-1)+1:7*(j-1)+3) = Jacobian_temp(8:10);
-						obj.Jacobian_G(k,7*(j-1)+4:7*(j-1)+7) = Jacobian_temp(11:14);
+						dq = obj.Jacobian_G\obj.Phi_G;
+						
+						obj.q(:,tt) = obj.q(:,tt) - dq;
+						
+						% Breakout counter
+						k = k+1;
+						if (k>1000)
+							break;
+						end
 					end
-					
-					
 				end
 				
-				% Calculate from each Euler parameter constraint
-				for i = 1:obj.N_EPCons
-					p_i = obj.q(7*(i-1)+1+3:7*(i-1)+7,tt);
-					p_i_dot = obj.q_dot(7*(i-1)+1+3:7*(i-1)+7,tt);
-					
-					obj.Phi_G(obj.N_GCons + i, 1) = p_i'*p_i - 1;
-					obj.nu_G(obj.N_GCons + i, 1) = 0;
-					obj.gamma_G(obj.N_GCons + i, 1) = -2*p_i_dot'*p_i_dot;
-				end
+				% Compute Phi_G, nu_G, gamma_G, Jacobian_G
+				Global_Phi_nu_gamma_Jacobian(obj, tt);
+				
+				% Solve for q_dot and q_ddot at this timestep
+				obj.q_dot(:,tt) = obj.Jacobian_G\obj.nu_G;
+				obj.q_ddot(:,tt) = obj.Jacobian_G\obj.gamma_G;
 				
 				%q_dot_temp = inv(obj.Jacobian_G)*obj.nu_G
 				%q_dot_temp = obj.Jacobian_G\obj.nu_G
 				%q_ddot_temp = obj.Jacobian_G\obj.gamma_G
-				
-				dq = 1;
-				q_temp = 
-				tol = 1e-3;
-				while dq > tol
-					dq = obj.Jacobian_G\obj.Phi_G;
-					
-				end
-				
+			
 			end
-			
-			
+		end
+		
+		
+		%% Compute Phi_G, nu_G, gamma_G, Jacobian_G
+		function obj = Global_Phi_nu_gamma_Jacobian(obj, tt)
+			% Calculate from each GCon
+			for k = 1:obj.N_GCons
+				i = obj.input.constraints{k}.i;
+				j = obj.input.constraints{k}.j;
+
+				% First body
+				% If the first body is ground
+				if i == 0
+					q_i = [0, 0, 0, 1, 0, 0, 0]';
+					q_i_dot = [0, 0, 0, 0, 0, 0, 0]';
+				% Otherwise coordinates are from q
+				else
+					q_i = obj.q(7*(i-1)+1:7*(i-1)+7,tt);
+					q_i_dot = obj.q_dot(7*(i-1)+1:7*(i-1)+7,tt);
+				end
+
+				% Second body
+				% If the second body is ground
+				if j == 0
+					q_j = [0, 0, 0, 1, 0, 0, 0]';
+					q_j_dot = [0, 0, 0, 0, 0, 0, 0]';
+				% Otherwise coordinates are from q
+				else
+					q_j = obj.q(7*(j-1)+1:7*(j-1)+7,tt);
+					q_j_dot = obj.q_dot(7*(j-1)+1:7*(j-1)+7,tt);
+				end
+
+				% Get a handle for the GCon type call
+				Phi_handle = str2func(obj.input.constraints{k}.type);
+
+				% Populate global Phi, nu, gamma, Jacobian
+				obj.Phi_G(k,1) = Phi_handle(obj.input.constraints{k}, q_i, q_j,  q_i_dot, q_j_dot, obj.f(k,tt), obj.f_dot(k,tt), obj.f_ddot(k,tt), 'Phi');
+				obj.nu_G(k,1) = Phi_handle(obj.input.constraints{k}, q_i, q_j,  q_i_dot, q_j_dot, obj.f(k,tt), obj.f_dot(k,tt), obj.f_ddot(k,tt), 'nu');
+				obj.gamma_G(k,1) = Phi_handle(obj.input.constraints{k}, q_i, q_j,  q_i_dot, q_j_dot, obj.f(k,tt), obj.f_dot(k,tt), obj.f_ddot(k,tt), 'gamma');
+				Jacobian_temp = Phi_handle(obj.input.constraints{k}, q_i, q_j,  q_i_dot, q_j_dot, obj.f(k,tt), obj.f_dot(k,tt), obj.f_ddot(k,tt), 'Jacobian');
+
+				% Jacobian expanded to global size
+				% If the first body is ground
+				if i == 0
+					obj.Jacobian_G(k,7*(j-1)+1:7*(j-1)+3) = Jacobian_temp(1:3);
+					obj.Jacobian_G(k,7*(j-1)+4:7*(j-1)+7) = Jacobian_temp(4:7);
+				% If the second body is ground
+				elseif j == 0
+					obj.Jacobian_G(k,7*(i-1)+1:7*(i-1)+3) = Jacobian_temp(1:3);
+					obj.Jacobian_G(k,7*(i-1)+4:7*(i-1)+7) = Jacobian_temp(4:7);
+				else
+					obj.Jacobian_G(k,7*(i-1)+1:7*(i-1)+3) = Jacobian_temp(1:3);
+					obj.Jacobian_G(k,7*(i-1)+4:7*(i-1)+7) = Jacobian_temp(4:7);
+
+					obj.Jacobian_G(k,7*(j-1)+1:7*(j-1)+3) = Jacobian_temp(8:10);
+					obj.Jacobian_G(k,7*(j-1)+4:7*(j-1)+7) = Jacobian_temp(11:14);
+				end
+			end
+
+			% Calculate from each Euler parameter constraint
+			for i = 1:obj.N_EPCons
+				p_i = obj.q(7*(i-1)+1+3:7*(i-1)+7,tt);
+				p_i_dot = obj.q_dot(7*(i-1)+1+3:7*(i-1)+7,tt);
+				
+				k = obj.N_GCons + i;
+				obj.Phi_G(k, 1) = p_i'*p_i - 1;
+				obj.nu_G(k, 1) = 0;
+				obj.gamma_G(k, 1) = -2*p_i_dot'*p_i_dot;
+				obj.Jacobian_G(k,7*(i-1)+1+3:7*(i-1)+7) = 2*p_i_dot';
+			end
 		end
 		
 		
