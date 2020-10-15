@@ -141,25 +141,27 @@ classdef simEngine3D < handle
 					% q and q_dot are obtained from the previous time step
 					obj.q(:,tt) = obj.q(:,tt-1);
 					obj.q_dot(:,tt) = obj.q_dot(:,tt-1);
+				end
+				
+				% Newton-Raphson iterative approach to solving the
+				% current q
+				dq = 1;
+				tol = 1e-3;
+				k = 0;
+				while abs(dq) > tol
+					% Compute Phi_G, nu_G, gamma_G, Jacobian_G
+					Global_Phi_nu_gamma_Jacobian(obj, tt);
 					
-					% Newton-Raphson iterative approach to solving the
-					% current q
-					dq = 1;
-					tol = 1e-3;
-					k = 0;
-					while abs(dq) > tol
-						% Compute Phi_G, nu_G, gamma_G, Jacobian_G
-						Global_Phi_nu_gamma_Jacobian(obj, tt);
-						
-						dq = obj.Jacobian_G\obj.Phi_G;
-						
-						obj.q(:,tt) = obj.q(:,tt) - dq;
-						
-						% Breakout counter
-						k = k+1;
-						if (k>1000)
-							break;
-						end
+					% Calculate the residual
+					dq = obj.Jacobian_G\obj.Phi_G;
+					
+					% Update the guess for q
+					obj.q(:,tt) = obj.q(:,tt) - dq;
+
+					% Breakout counter
+					k = k+1;
+					if (k>1000)
+						break;
 					end
 				end
 				
@@ -169,11 +171,6 @@ classdef simEngine3D < handle
 				% Solve for q_dot and q_ddot at this timestep
 				obj.q_dot(:,tt) = obj.Jacobian_G\obj.nu_G;
 				obj.q_ddot(:,tt) = obj.Jacobian_G\obj.gamma_G;
-				
-				%q_dot_temp = inv(obj.Jacobian_G)*obj.nu_G
-				%q_dot_temp = obj.Jacobian_G\obj.nu_G
-				%q_ddot_temp = obj.Jacobian_G\obj.gamma_G
-			
 			end
 		end
 		
