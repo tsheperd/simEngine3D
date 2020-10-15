@@ -153,6 +153,10 @@ classdef simEngine3D < handle
 			obj.Jacobian_G = zeros(obj.N_Cons, obj.N_params);
 			
 			
+			% Compute Phi_G, nu_G, gamma_G, Jacobian_G
+			Global_Phi_nu_gamma_Jacobian(obj, 1);
+			
+			%%{
 			% Get Phi_G, nu_G, gamma_G, Jacobian_G
 			for tt = 1:obj.N_t
 				if tt > 1
@@ -167,7 +171,7 @@ classdef simEngine3D < handle
 				dq = 1;
 				%tol = 1e-3;
 				k = 0;
-				while abs(dq) > obj.tol
+				while abs(norm(dq,2)) > obj.tol
 					% Compute Phi_G, nu_G, gamma_G, Jacobian_G
 					Global_Phi_nu_gamma_Jacobian(obj, tt);
 					
@@ -179,11 +183,14 @@ classdef simEngine3D < handle
 
 					% Breakout counter
 					k = k+1;
-					if (k>1000)
+					if (k > 10000)
 						break;
+						disp("BREAK");
 					end
 				end
-				
+				%disp(k);
+				%disp(abs(norm(dq)));
+				%disp(obj.tol);
 				% Compute Phi_G, nu_G, gamma_G, Jacobian_G
 				Global_Phi_nu_gamma_Jacobian(obj, tt);
 				
@@ -191,6 +198,7 @@ classdef simEngine3D < handle
 				obj.q_dot(:,tt) = obj.Jacobian_G\obj.nu_G;
 				obj.q_ddot(:,tt) = obj.Jacobian_G\obj.gamma_G;
 			end
+			%%}
 		end
 		
 		

@@ -22,3 +22,22 @@ end
 obj.inputDeckFile = inputDeckFile_Mod;
 
 jsondecode(inputDeckFile_Mod)
+%find(line=='/''*',1)
+
+%{
+
+
+
+e = min([find(line=="/*",1),find(line=="*\",1)])
+% if ~isempty(e)
+% 	e = e-1;
+% 	while isspace(line(e))
+% 		e = e - 1;
+% 	end
+% 	line = line(1:e);
+% end
+% line
+% 
+% % Parse the input as JSON
+% input = jsondecode(line);
+%}
