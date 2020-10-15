@@ -30,6 +30,11 @@ f = 1.2;
 f_dot = 2.5;
 f_ddot = 0.2;
 
+% Added these
+r_i_dot = [8, 6, -3]';
+r_j_dot = [8, 6, -3]';
+
+
 
 %% GCon Calculations
 % Flag used to define the output type of the GCON
@@ -47,13 +52,12 @@ Phi_CD(c,...
        2,s_j_Q_bar,r_j,p_j,p_j_dot,...
        f,f_dot,f_ddot,FLAG)
 
-r_i_dot = [8, 6, -3]';
-r_j_dot = [8, 6, -3]';
-
+% Calculate the desired DP2 constrain value
 Phi_DP2(1,a_i_bar,s_i_P_bar,r_i,r_i_dot,p_i,p_i_dot,...
         2,a_j_bar,s_j_Q_bar,r_j,r_j_dot,p_j,p_j_dot,...
         f,f_dot,f_ddot,FLAG)
-    
+
+% Calculate the desired D constrain value
 Phi_D(1,a_i_bar,s_i_P_bar,r_i,r_i_dot,p_i,p_i_dot,...
     2,a_j_bar,s_j_Q_bar,r_j,r_j_dot,p_j,p_j_dot,...
     f,f_dot,f_ddot,FLAG)
