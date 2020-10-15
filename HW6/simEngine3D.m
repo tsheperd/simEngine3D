@@ -1,5 +1,5 @@
 %% Main class for simEngine3D
-% Contains all simulation requirements
+% Contains simulation class calls
 classdef simEngine3D < handle
 	properties
 		Args
