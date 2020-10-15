@@ -9,7 +9,7 @@ addpath('./Functions/Constraints');
 simulation = simEngine3D;
 
 simulation.ReadInputDeck("inputDeck.mdl");
-simulation.KinematicSolver();
+simulation.KinematicSolver(0,1,1,1e-3);
 
 N_Cons = size(simulation.input.constraints,1)-2;
 

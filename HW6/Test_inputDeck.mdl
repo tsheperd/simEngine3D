@@ -1,5 +1,5 @@
 {
-	"name": "TEST",/* TEST COMMENT*/
+	"name": "TEST",
 	"gravity": [0, 0, -9.81],
 	"time": [0, 1, 0],
 	"bodies":

@@ -30,6 +30,8 @@ classdef simEngine3D < handle
 		nu_G
 		gamma_G
 		Jacobian_G
+		
+		tol
 	end
 	methods
 		
@@ -49,6 +51,16 @@ classdef simEngine3D < handle
 			% Read the input deck file
  			obj.inputDeckFileName = val;
 			obj.inputDeckFile = fileread(val);
+			
+			% Remove all comments of the form /*...*/
+			inputDeckFile_Mod = obj.inputDeckFile;
+			while ~isempty(strfind(inputDeckFile_Mod,'/*'))
+				i1 = strfind(inputDeckFile_Mod,"/*");
+				i2 = strfind(inputDeckFile_Mod,"*/");
+				inputDeckFile_Mod = strcat(inputDeckFile_Mod(1:i1(1)-1),inputDeckFile_Mod(i2(1)+2:end));
+			end
+			obj.inputDeckFile = inputDeckFile_Mod;
+			
 			% Parse the input as JSON
 			obj.input = jsondecode(obj.inputDeckFile);
 			
@@ -60,19 +72,26 @@ classdef simEngine3D < handle
 			end
 			
 			% Parse input times
-			obj.t_i = obj.input.time(1);
-			obj.dt = obj.input.time(2);
-			obj.t_f = obj.input.time(3);
+			%obj.t_i = obj.input.time(1);
+			%obj.dt = obj.input.time(2);
+			%obj.t_f = obj.input.time(3);
 			
 			
 		end
 		
 		
 		%% Function to act as a kinematic solver
-		function obj = KinematicSolver(obj)
+		function obj = KinematicSolver(obj, t_i_temp, dt_temp, t_f_temp, tol_temp)
+			% Parse input times
+			obj.t_i = t_i_temp;
+			obj.dt = dt_temp;
+			obj.t_f = t_f_temp;
+			
 			% Create a time vector
 			obj.t = (obj.t_i:obj.dt:obj.t_f);
 			obj.N_t = length(obj.t);
+			
+			obj.tol = tol_temp;
 			
 			
 			% Create bodies' generalized parameters, q vector, for all time
@@ -146,9 +165,9 @@ classdef simEngine3D < handle
 				% Newton-Raphson iterative approach to solving the
 				% current q
 				dq = 1;
-				tol = 1e-3;
+				%tol = 1e-3;
 				k = 0;
-				while abs(dq) > tol
+				while abs(dq) > obj.tol
 					% Compute Phi_G, nu_G, gamma_G, Jacobian_G
 					Global_Phi_nu_gamma_Jacobian(obj, tt);
 					
