@@ -32,5 +32,7 @@ simulation.q(7*(i-1)+1+3:7*(i-1)+7,tt);
 p_i = simulation.q(7*(i-1)+1+3:7*(i-1)+7,tt);
 p_i'*p_i - 1;
 
-
+simulation.Phi_G
+simulation.nu_G
+simulation.gamma_G
 simulation.Jacobian_G

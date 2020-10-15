@@ -60,9 +60,9 @@ classdef simEngine3D < handle
 			end
 			
 			% Parse input times
-			%obj.t_i = obj.input.time(1);
-			%obj.dt = obj.input.time(2);
-			%obj.t_f = obj.input.time(3);
+			obj.t_i = obj.input.time(1);
+			obj.dt = obj.input.time(2);
+			obj.t_f = obj.input.time(3);
 			
 			
 		end
@@ -243,7 +243,7 @@ classdef simEngine3D < handle
 				obj.Phi_G(k, 1) = p_i'*p_i - 1;
 				obj.nu_G(k, 1) = 0;
 				obj.gamma_G(k, 1) = -2*p_i_dot'*p_i_dot;
-				obj.Jacobian_G(k,7*(i-1)+1+3:7*(i-1)+7) = 2*p_i_dot';
+				obj.Jacobian_G(k,7*(i-1)+1+3:7*(i-1)+7) = 2*p_i';
 			end
 		end
 		
