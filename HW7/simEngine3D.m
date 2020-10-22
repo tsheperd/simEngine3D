@@ -304,12 +304,18 @@ classdef simEngine3D < handle
 			% etc...
 			obj.KinematicSolver(t_i_temp, dt_temp, t_f_temp, tol_temp);
 			
+			g = obj.input.gravity;
 			
 			% Initialize Global M, J_P, P matricies
 			obj.M = zeros(3*obj.N_Bodies);
 			obj.J_P = zeros(4*obj.N_Bodies);
 			obj.P = zeros(obj.N_Bodies, 4*obj.N_Bodies);
 			
+			r_ddot = zeros(3*obj.N_Bodies, 1);
+			p_ddot = zeros(4*obj.N_Bodies, 1);
+			
+			F = zeros(3*obj.N_Bodies, 1);
+			tau = zeros(4*obj.N_Bodies, 1);
 			
 			% For each body, calculate M_i, J_bar_i
 			for i = 1:obj.N_Bodies
@@ -342,6 +348,9 @@ classdef simEngine3D < handle
 				
 				% Push the M_i for the body to the global M
 				obj.M(3*(i-1)+1:3*(i-1)+3,3*(i-1)+1:3*(i-1)+3) = M_i;
+				
+				% Calculate the force per body
+				F(3*(i-1)+1:3*(i-1)+3,1) = F(3*(i-1)+1:3*(i-1)+3,1) + m_i*g;
 			end
 			
 			
@@ -350,9 +359,15 @@ classdef simEngine3D < handle
 				
 				% For each body, calculate M_i, J_bar_i
 				for i = 1:obj.N_Bodies
+					r_i = obj.q(7*(i-1)+1+0:7*(i-1)+3,tt);
+					r_i_dot = obj.q_dot(7*(i-1)+1+0:7*(i-1)+3,tt);
+					r_i_ddot = obj.q_ddot(7*(i-1)+1+0:7*(i-1)+3,tt);
 					p_i = obj.q(7*(i-1)+1+3:7*(i-1)+7,tt);
 					p_i_dot = obj.q_dot(7*(i-1)+1+3:7*(i-1)+7,tt);
 					p_i_ddot = obj.q_ddot(7*(i-1)+1+3:7*(i-1)+7,tt);
+					
+					r_ddot(3*(i-1)+1+0:3*(i-1)+3) = r_i_ddot;
+					p_ddot(4*(i-1)+1+0:4*(i-1)+4) = p_i_ddot;
 					
 					% Calculate the J_P_i for the body
 					J_bar_i = obj.J_bar_i{i};
@@ -362,7 +377,7 @@ classdef simEngine3D < handle
 					obj.J_P(4*(i-1)+1:4*(i-1)+4,4*(i-1)+1:4*(i-1)+4) = J_P_i;
 					
 					% Global P
-					obj.J_P(i,4*(i-1)+1:4*(i-1)+4) = p_i';
+					obj.P(i,4*(i-1)+1:4*(i-1)+4) = p_i';
 				end
 				
 				% Compute Jacobian_G
@@ -371,7 +386,15 @@ classdef simEngine3D < handle
 				%obj.Jacobian_r_G
 				%obj.Jacobian_p_G
 				
+				 
 				
+				
+				A = [obj.Jacobian_r_G', zeros(3*obj.N_Bodies, obj.N_Bodies);...
+					 obj.Jacobian_p_G', obj.P';];
+				
+				 
+				b = [F - obj.M*r_ddot;...
+					 tau - obj.J_P*p_ddot;];
 				
 				
 			end
