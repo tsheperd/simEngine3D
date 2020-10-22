@@ -1,4 +1,4 @@
-%% simEngine3D_A6P3 Driver Function
+%% simEngine3D_A7P1 Driver Function
 clear; close all; clc;
 % Profiler shows the timings, calls, etc.
 %profile on
@@ -8,6 +8,7 @@ tic;
 
 % Booleans
 SAVE_PLOTS = 0;
+
 
 %% Initial state
 theta_ini = pi/4*cos(2*0);
@@ -32,9 +33,6 @@ m = rho*a*b*c
 J_xx_bar = 1/12*m*(b^2 + c^2)
 J_yy_bar = 1/12*m*(a^2 + c^2)
 J_zz_bar = 1/12*m*(a^2 + b^2)
-
-
-
 
 
 %% Add library of functions to path
@@ -233,8 +231,56 @@ if SAVE_PLOTS
 	saveas(gcf,'Q_Analytical_Plot.png');
 end
 
+
+% Torque Plot
+figure;
+for tt = 1:simulation.N_t
+	for kk = 1:6
+		TT = simulation.tau_rxn{tt}{1,kk};
+	end
+	tau(:,tt) = TT;
+	%tau(:,tt) = simulation.tau_rxn{tt}{1,6};
+end
+hold on;
+plot(simulation.t, tau(1,:));
+plot(simulation.t, tau(2,:));
+plot(simulation.t, tau(3,:));
+title("Torque");
+xlabel("t (s)");
+ylabel("torque (N-m)");
+legend('x','y','z');
+hold off;
+if SAVE_PLOTS
+	saveas(gcf,'Torque_Plot.png');
+end
+
+
 %{
-% Deviations from the analytical
+% Force Plot
+figure;
+for tt = 1:simulation.N_t
+	for kk = 5:5
+		FF = simulation.F_rxn{tt}{1,kk};
+	end
+	F(:,tt) = FF;
+end
+hold on;
+plot(simulation.t, F(1,:));
+plot(simulation.t, F(2,:));
+plot(simulation.t, F(3,:));
+title("Force");
+xlabel("t (s)");
+ylabel("F (N)");
+legend('x','y','z');
+hold off;
+if SAVE_PLOTS
+	saveas(gcf,'Force_Plot.png');
+end
+%}
+
+
+%{
+%% Deviations from the analytical
 dev_r_x = norm(simulation.q(1,:)-r_ana(1,:))
 dev_r_y = norm(simulation.q(2,:)-r_ana(2,:))
 dev_r_z = norm(simulation.q(3,:)-r_ana(3,:))
@@ -247,6 +293,7 @@ dev_r_ddot_x = norm(simulation.q_ddot(1,:)-r_ana_ddot(1,:))
 dev_r_ddot_y = norm(simulation.q_ddot(2,:)-r_ana_ddot(2,:))
 dev_r_ddot_z = norm(simulation.q_ddot(3,:)-r_ana_ddot(3,:))
 %}
+
 
 toc;
 %profile viewer

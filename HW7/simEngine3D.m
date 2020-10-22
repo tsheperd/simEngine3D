@@ -49,6 +49,10 @@ classdef simEngine3D < handle
 		M
 		J_P
 		P
+		
+		F_rxn
+		tau_rxn
+		tau_rxn_bar
 	end
 	methods
 		
@@ -349,13 +353,11 @@ classdef simEngine3D < handle
 				% Push the M_i for the body to the global M
 				obj.M(3*(i-1)+1:3*(i-1)+3,3*(i-1)+1:3*(i-1)+3) = M_i;
 				
-				% Calculate the force per body
-				F(3*(i-1)+1:3*(i-1)+3,1) = F(3*(i-1)+1:3*(i-1)+3,1) + m_i*g;
 			end
 			
 			
 			for tt = 1:obj.N_t
-				obj.q(:,tt)
+				%obj.q(:,tt);
 				
 				% For each body, calculate M_i, J_bar_i
 				for i = 1:obj.N_Bodies
@@ -378,6 +380,19 @@ classdef simEngine3D < handle
 					
 					% Global P
 					obj.P(i,4*(i-1)+1:4*(i-1)+4) = p_i';
+					
+					m_i = obj.m(i,1);
+					F_m_i = m_i*g;
+					F_a_i = zeros(3,1);
+
+					n_m_bar_i = zeros(3,1);
+					n_a_bar_i = zeros(3,1);
+
+					% Calculate the force per body
+					F(3*(i-1)+1:3*(i-1)+3,1) = F_m_i + F_a_i;
+					
+					% Calculate the torque per body
+					tau(4*(i-1)+1:4*(i-1)+4,1) = 2*G(p_i)'*(n_m_bar_i + n_a_bar_i)+8*G(p_i_dot)'*J_bar_i*G(p_i_dot)*p_i;
 				end
 				
 				% Compute Jacobian_G
@@ -386,16 +401,35 @@ classdef simEngine3D < handle
 				%obj.Jacobian_r_G
 				%obj.Jacobian_p_G
 				
-				 
 				
-				
-				A = [obj.Jacobian_r_G', zeros(3*obj.N_Bodies, obj.N_Bodies);...
+				% LHS of the inverse kinematics equation
+				LHS = [obj.Jacobian_r_G', zeros(3*obj.N_Bodies, obj.N_Bodies);...
 					 obj.Jacobian_p_G', obj.P';];
 				
-				 
-				b = [F - obj.M*r_ddot;...
+				% RHS of the inverse kinematics equation
+				RHS = [F - obj.M*r_ddot;...
 					 tau - obj.J_P*p_ddot;];
 				
+				% Solve for all of the lagrange multipliers
+				lambda_v = LHS\RHS;
+				
+				% Extract the kinematic and euler LM
+				lambda = lambda_v(1:obj.N_GCons,1);
+				lambda_P = lambda_v(obj.N_GCons+1:end,1);
+				
+				% Calculate the reaction torques and forces
+				for i = 1:obj.N_Bodies
+					p_i = obj.q(7*(i-1)+1+3:7*(i-1)+7,tt);
+					Jacobian_r_i = obj.Jacobian_r_G(:,3*(i-1)+1:3*(i-1)+3);
+					Jacobian_p_i = obj.Jacobian_p_G(:,4*(i-1)+1:4*(i-1)+4);
+					
+					% Solve reaction forces from each GCon
+					for j = 1:obj.N_GCons
+						obj.F_rxn{tt}{i,j} = -Jacobian_r_i(j,:)'*lambda(j);
+						obj.tau_rxn_bar{tt}{i,j} = -1/2*G(p_i)*(Jacobian_p_i(j,:)'*lambda(j));
+						obj.tau_rxn{tt}{i,j} = A(p_i)*obj.tau_rxn_bar{tt}{i,j};
+					end
+				end
 				
 			end
 			
