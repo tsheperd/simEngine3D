@@ -1,16 +1,23 @@
 %% simEngine3D_A6P3 Driver Function
 clear; close all; clc;
+% Profiler shows the timings, calls, etc.
+%profile on
+
+% Timer
+tic;
 
 
 %% Initial state
 theta_ini = pi/4*cos(2*0);
-A_ini = [0,0,1;...
-	 sin(theta_ini), cos(theta_ini), 0;...
-	 -cos(theta_ini), sin(theta_ini), 0;];
+A_ini = [0,				0,					1;...
+		sin(theta_ini), cos(theta_ini),		0;...
+		-cos(theta_ini), sin(theta_ini),	0;];
 e0_ini = ((trace(A_ini)+1)/4)^(1/2)
-e1_ini = ((A_ini(1,1)-trace(A_ini)+1)/4)^(1/2)
-e2_ini = ((A_ini(2,2)-trace(A_ini)+1)/4)^(1/2)
-e3_ini = ((A_ini(3,3)-trace(A_ini)+1)/4)^(1/2)
+e1_ini = ((2*A_ini(1,1)-trace(A_ini)+1)/4)^(1/2)
+e2_ini = ((2*A_ini(2,2)-trace(A_ini)+1)/4)^(1/2)
+e3_ini = ((2*A_ini(3,3)-trace(A_ini)+1)/4)^(1/2)
+p_ini = [e0_ini, e1_ini, e2_ini, e3_ini]
+p_ini_norm = norm(p_ini)
 r_ini = A_ini*[2,0,0]'
 
 
@@ -27,7 +34,7 @@ simulation = simEngine3D;
 simulation.ReadInputDeck("revJoint.mdl");
 
 % Run the kinematic solver: (t_initial, dt, t_final, tolerance)
-simulation.KinematicSolver(0, 0.001, 10, 1e-12);
+simulation.KinematicSolver(0, 0.001, 10, 1e-6);
 
 
 %% Output final timestep information
@@ -63,6 +70,7 @@ end
 %% Q Plots
 % Q Position plot
 figure;
+subplot(3,1,1);
 hold on;
 plot(simulation.t,rho(1,:));
 plot(simulation.t,rho(2,:));
@@ -74,7 +82,8 @@ legend('x','y','z');
 hold off;
 
 % O Velocity plot
-figure;
+%figure;
+subplot(3,1,2);
 hold on;
 plot(simulation.t,rho_dot(1,:));
 plot(simulation.t,rho_dot(2,:));
@@ -86,7 +95,8 @@ legend('x','y','z');
 hold off;
 
 % O Acceleration plot
-figure;
+%figure;
+subplot(3,1,3);
 hold on;
 plot(simulation.t,rho_ddot(1,:));
 plot(simulation.t,rho_ddot(2,:));
@@ -96,11 +106,13 @@ xlabel("t (s)");
 ylabel("acceleration (m/s^2)");
 legend('x','y','z');
 hold off;
+saveas(gcf,'Q_Plot.png');
 
 
 %% Origin Plots
 % O Position plot
 figure;
+subplot(3,1,1);
 hold on;
 plot(simulation.t,simulation.q(1,:));
 plot(simulation.t,simulation.q(2,:));
@@ -112,7 +124,8 @@ legend('x','y','z');
 hold off;
 
 % O Velocity plot
-figure;
+%figure;
+subplot(3,1,2);
 hold on;
 plot(simulation.t,simulation.q_dot(1,:));
 plot(simulation.t,simulation.q_dot(2,:));
@@ -124,7 +137,8 @@ legend('x','y','z');
 hold off;
 
 % O Acceleration plot
-figure;
+%figure;
+subplot(3,1,3);
 hold on;
 plot(simulation.t,simulation.q_ddot(1,:));
 plot(simulation.t,simulation.q_ddot(2,:));
@@ -134,6 +148,7 @@ xlabel("t (s)");
 ylabel("acceleration (m/s^2)");
 legend('x','y','z');
 hold off;
+saveas(gcf,'O_Plot.png');
 
 
 %% Analytical Solution
@@ -156,7 +171,9 @@ for tt = 1:simulation.N_t
 	r_ana_ddot(:,tt) = ToTilde(omega_ana)*ToTilde(omega_ana)*r_ana_i + ToTilde(omega_ana_dot)*r_ana_i;
 end
 
+% O Analytical Position plot
 figure;
+subplot(3,1,1);
 hold on;
 plot(simulation.t, r_ana(1,:));
 plot(simulation.t, r_ana(2,:));
@@ -167,7 +184,9 @@ ylabel("position (m)");
 legend('x','y','z');
 hold off;
 
-figure;
+% O Analytical Velocity plot
+%figure;
+subplot(3,1,2);
 hold on;
 plot(simulation.t, r_ana_dot(1,:));
 plot(simulation.t, r_ana_dot(2,:));
@@ -178,7 +197,9 @@ ylabel("velocity (m/s)");
 legend('x','y','z');
 hold off;
 
-figure;
+% O Analytical Acceleration plot
+%figure;
+subplot(3,1,3);
 hold on;
 plot(simulation.t, r_ana_ddot(1,:));
 plot(simulation.t, r_ana_ddot(2,:));
@@ -188,3 +209,22 @@ xlabel("t (s)");
 ylabel("acceleration (m/s^2)");
 legend('x','y','z');
 hold off;
+saveas(gcf,'Q_Analytical_Plot.png');
+
+%{
+% Deviations from the analytical
+dev_r_x = norm(simulation.q(1,:)-r_ana(1,:))
+dev_r_y = norm(simulation.q(2,:)-r_ana(2,:))
+dev_r_z = norm(simulation.q(3,:)-r_ana(3,:))
+
+dev_r_dot_x = norm(simulation.q_dot(1,:)-r_ana_dot(1,:))
+dev_r_dot_y = norm(simulation.q_dot(2,:)-r_ana_dot(2,:))
+dev_r_dot_z = norm(simulation.q_dot(3,:)-r_ana_dot(3,:))
+
+dev_r_ddot_x = norm(simulation.q_ddot(1,:)-r_ana_ddot(1,:))
+dev_r_ddot_y = norm(simulation.q_ddot(2,:)-r_ana_ddot(2,:))
+dev_r_ddot_z = norm(simulation.q_ddot(3,:)-r_ana_ddot(3,:))
+%}
+
+toc;
+%profile viewer

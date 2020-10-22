@@ -4,13 +4,15 @@ clear; close all; clc;
 
 %% Initial state
 theta_ini = pi/4*cos(2*0);
-A_ini = [0,0,1;...
-	 sin(theta_ini), cos(theta_ini), 0;...
-	 -cos(theta_ini), sin(theta_ini), 0;];
+A_ini = [0,				0,					1;...
+		sin(theta_ini), cos(theta_ini),		0;...
+		-cos(theta_ini), sin(theta_ini),	0;];
 e0_ini = ((trace(A_ini)+1)/4)^(1/2)
-e1_ini = ((A_ini(1,1)-trace(A_ini)+1)/4)^(1/2)
-e2_ini = ((A_ini(2,2)-trace(A_ini)+1)/4)^(1/2)
-e3_ini = ((A_ini(3,3)-trace(A_ini)+1)/4)^(1/2)
+e1_ini = ((2*A_ini(1,1)-trace(A_ini)+1)/4)^(1/2)
+e2_ini = ((2*A_ini(2,2)-trace(A_ini)+1)/4)^(1/2)
+e3_ini = ((2*A_ini(3,3)-trace(A_ini)+1)/4)^(1/2)
+p_ini = [e0_ini, e1_ini, e2_ini, e3_ini]
+p_ini_norm = norm(p_ini)
 r_ini = A_ini*[2,0,0]'
 
 

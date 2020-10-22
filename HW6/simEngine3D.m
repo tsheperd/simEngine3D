@@ -71,12 +71,6 @@ classdef simEngine3D < handle
 				struct2cell(obj.input.constraints);
 			end
 			
-			% Parse input times
-			%obj.t_i = obj.input.time(1);
-			%obj.dt = obj.input.time(2);
-			%obj.t_f = obj.input.time(3);
-			
-			
 		end
 		
 		
@@ -154,9 +148,11 @@ classdef simEngine3D < handle
 			
 			
 			% Compute Phi_G, nu_G, gamma_G, Jacobian_G
-			Global_Phi_nu_gamma_Jacobian(obj, 1);
+			Global_Phi_nu_gamma_Jacobian(obj, 1, [1, 1, 1, 1]);
 			
-			%%{
+			% Create a waitbar
+			WB = waitbar(0, 'Kinematic Solver: Computing');
+			
 			% Get Phi_G, nu_G, gamma_G, Jacobian_G
 			for tt = 1:obj.N_t
 				if tt > 1
@@ -173,7 +169,7 @@ classdef simEngine3D < handle
 				k = 0;
 				while abs(norm(dq,2)) > obj.tol
 					% Compute Phi_G, nu_G, gamma_G, Jacobian_G
-					Global_Phi_nu_gamma_Jacobian(obj, tt);
+					Global_Phi_nu_gamma_Jacobian(obj, tt, [1, 0, 0, 1]);
 					
 					% Calculate the residual
 					dq = obj.Jacobian_G\obj.Phi_G;
@@ -188,22 +184,31 @@ classdef simEngine3D < handle
 						disp("BREAK");
 					end
 				end
-				%disp(k);
-				%disp(abs(norm(dq)));
-				%disp(obj.tol);
+
 				% Compute Phi_G, nu_G, gamma_G, Jacobian_G
-				Global_Phi_nu_gamma_Jacobian(obj, tt);
+				Global_Phi_nu_gamma_Jacobian(obj, tt, [0, 1, 0, 1]);
 				
-				% Solve for q_dot and q_ddot at this timestep
+				% Solve for q_dot at this timestep
 				obj.q_dot(:,tt) = obj.Jacobian_G\obj.nu_G;
+				
+				% Compute Phi_G, nu_G, gamma_G, Jacobian_G with the updated
+				% q_dot
+				Global_Phi_nu_gamma_Jacobian(obj, tt, [1, 1, 1, 1]);
+				
+				% Solve for q_ddot at this timestep
 				obj.q_ddot(:,tt) = obj.Jacobian_G\obj.gamma_G;
+				
+				% Show a progress bar
+				waitbar(tt/obj.N_t, WB, 'Kinematic Solver: Computing');
 			end
-			%%}
+			
+			% Close the waitbar
+			delete(WB);
 		end
 		
 		
 		%% Compute Phi_G, nu_G, gamma_G, Jacobian_G
-		function obj = Global_Phi_nu_gamma_Jacobian(obj, tt)
+		function obj = Global_Phi_nu_gamma_Jacobian(obj, tt, FLAG)
 			% Calculate from each GCon
 			for k = 1:obj.N_GCons
 				i = obj.input.constraints{k}.i;
@@ -235,24 +240,16 @@ classdef simEngine3D < handle
 				Phi_handle = str2func(obj.input.constraints{k}.type);
 
 				% Populate global Phi, nu, gamma, Jacobian
-				obj.Phi_G(k,1) = Phi_handle(obj.input.constraints{k}, q_i, q_j,  q_i_dot, q_j_dot, obj.f(k,tt), obj.f_dot(k,tt), obj.f_ddot(k,tt), 'Phi');
-				obj.nu_G(k,1) = Phi_handle(obj.input.constraints{k}, q_i, q_j,  q_i_dot, q_j_dot, obj.f(k,tt), obj.f_dot(k,tt), obj.f_ddot(k,tt), 'nu');
-				obj.gamma_G(k,1) = Phi_handle(obj.input.constraints{k}, q_i, q_j,  q_i_dot, q_j_dot, obj.f(k,tt), obj.f_dot(k,tt), obj.f_ddot(k,tt), 'gamma');
-				Jacobian_temp = Phi_handle(obj.input.constraints{k}, q_i, q_j,  q_i_dot, q_j_dot, obj.f(k,tt), obj.f_dot(k,tt), obj.f_ddot(k,tt), 'Jacobian');
-
+				[obj.Phi_G(k,1), obj.nu_G(k,1), obj.gamma_G(k,1), Jacobian_temp] = Phi_handle(obj.input.constraints{k}, q_i, q_j,  q_i_dot, q_j_dot, obj.f(k,tt), obj.f_dot(k,tt), obj.f_ddot(k,tt), FLAG);
+				
 				% Jacobian expanded to global size
-				% If the first body is ground
-				if i == 0
-					obj.Jacobian_G(k,7*(j-1)+1:7*(j-1)+3) = Jacobian_temp(1:3);
-					obj.Jacobian_G(k,7*(j-1)+4:7*(j-1)+7) = Jacobian_temp(4:7);
-				% If the second body is ground
-				elseif j == 0
+				% If the first body is not ground
+				if i ~= 0
 					obj.Jacobian_G(k,7*(i-1)+1:7*(i-1)+3) = Jacobian_temp(1:3);
 					obj.Jacobian_G(k,7*(i-1)+4:7*(i-1)+7) = Jacobian_temp(4:7);
-				else
-					obj.Jacobian_G(k,7*(i-1)+1:7*(i-1)+3) = Jacobian_temp(1:3);
-					obj.Jacobian_G(k,7*(i-1)+4:7*(i-1)+7) = Jacobian_temp(4:7);
-
+				end
+				% If the second body is not ground
+				if j ~= 0
 					obj.Jacobian_G(k,7*(j-1)+1:7*(j-1)+3) = Jacobian_temp(8:10);
 					obj.Jacobian_G(k,7*(j-1)+4:7*(j-1)+7) = Jacobian_temp(11:14);
 				end

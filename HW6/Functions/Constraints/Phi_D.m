@@ -1,4 +1,4 @@
-function out = Phi_D(constraint, q_i, q_j,  q_i_dot, q_j_dot,...
+function [Phi, nu, gamma, Jacobian] = Phi_D(constraint, q_i, q_j,  q_i_dot, q_j_dot,...
 						f,f_dot,f_ddot,FLAG)
 	
 	i = constraint.i;
@@ -39,22 +39,31 @@ function out = Phi_D(constraint, q_i, q_j,  q_i_dot, q_j_dot,...
     d_ij = r_j + A_j*s_j_bar - r_i - A_i*s_i_bar;
     d_ij_dot = r_j_dot + B(p_j, s_j_bar)*p_j_dot - r_i_dot - B(p_i, s_i_bar)*p_i_dot;
 
-    % Calculate either Phi, nu, gamma, or the jacobian based on a flag
-    if FLAG == "Phi"
-        out = d_ij'*d_ij - f;
-    elseif FLAG == "nu"
-        out = f_dot;
-    elseif FLAG == "gamma"
-        out = -2*d_ij'*B(p_j_dot, s_j_bar)*p_j_dot + 2*d_ij'*B(p_i_dot, s_i_bar)*p_i_dot - 2*d_ij_dot'*d_ij_dot + f_ddot;
-    elseif FLAG == "Jacobian"
+    % Initialize return variables
+	Phi = 0;
+	nu = 0;
+	gamma = 0;
+	Jacobian = [zeros(1,3), zeros(1,4), zeros(1,3), zeros(1,4)];
+	
+	% Calculate either Phi, nu, gamma, or the jacobian based on a flag
+    if FLAG(1)
+        Phi = d_ij'*d_ij - f;
+    end
+    if FLAG(2)
+        nu = f_dot;
+    end
+    if FLAG(3)
+        gamma = -2*d_ij'*B(p_j_dot, s_j_bar)*p_j_dot + 2*d_ij'*B(p_i_dot, s_i_bar)*p_i_dot - 2*d_ij_dot'*d_ij_dot + f_ddot;
+    end
+    if FLAG(4)
         % For i and j not ground
         if j ~= 0 && i ~= 0
-            out = [-2*d_ij', -2*d_ij'*B(p_i, s_i_bar), 2*d_ij', 2*d_ij'*B(p_j, s_j_bar)];
+            Jacobian = [-2*d_ij', -2*d_ij'*B(p_i, s_i_bar), 2*d_ij', 2*d_ij'*B(p_j, s_j_bar)];
         % Drop ground jacobian terms
         elseif j == 0
-            out = [-2*d_ij', -2*d_ij'*B(p_i, s_i_bar)];
+            Jacobian = [-2*d_ij', -2*d_ij'*B(p_i, s_i_bar), zeros(1,3), zeros(1,4)];
         elseif i == 0
-            out = [2*d_ij', 2*d_ij'*B(p_j, s_j_bar)];
+            Jacobian = [zeros(1,3), zeros(1,4), 2*d_ij', 2*d_ij'*B(p_j, s_j_bar)];
         end
     end
 
