@@ -269,6 +269,17 @@ classdef simEngine3D < handle
 		end
 		
 		
+		%% Function to as as the Inverse Dynamics Solver
+		function obj = InverseDynamicsSolver(obj, t_i_temp, dt_temp, t_f_temp, tol_temp)
+			% Run the kinematics solver to produce the q, q_dot, q_ddot,
+			% etc...
+			obj.KinematicSolver(t_i_temp, dt_temp, t_f_temp, tol_temp);
+			
+			
+
+			
+		end
+		
 		
 	end
 	%methods(Static)
