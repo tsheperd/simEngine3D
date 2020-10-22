@@ -32,6 +32,20 @@ classdef simEngine3D < handle
 		Jacobian_G
 		
 		tol
+		
+		m
+		r_cm
+		
+		J_xx_bar
+		J_yy_bar
+		J_zz_bar
+		
+		M_i
+		J_bar_i
+		
+		M
+		J_P
+		P
 	end
 	methods
 		
@@ -276,6 +290,43 @@ classdef simEngine3D < handle
 			obj.KinematicSolver(t_i_temp, dt_temp, t_f_temp, tol_temp);
 			
 			
+			% Initialize Global M, J_P, P matricies
+			obj.M = zeros(3*obj.N_Bodies);
+			obj.J_P = zeros(4*obj.N_Bodies);
+			obj.P = zeros(obj.N_Bodies, 4*obj.N_Bodies);
+			
+			
+			% For each body, calculate M_i, J_bar_i
+			for i = 1:obj.N_Bodies
+				
+				% Grab parameters from input deck on dynamic rel. params
+				% Mass
+				m_i = obj.input.bodies(i).m;
+				obj.m(i,1) = m_i;
+				
+				% Moments of inertia
+				J_xx_bar_i = obj.input.bodies(i).J_xx_bar;
+				J_yy_bar_i = obj.input.bodies(i).J_yy_bar;
+				J_zz_bar_i = obj.input.bodies(i).J_zz_bar;
+				obj.J_xx_bar(i,1) = J_xx_bar_i;
+				obj.J_yy_bar(i,1) = J_yy_bar_i;
+				obj.J_zz_bar(i,1) = J_zz_bar_i;
+				
+				% Center of mass vector
+				r_cm_i = obj.input.bodies(i).r_cm;
+				obj.r_cm{i} = r_cm_i;
+				
+				% Populate needed matricies for the EOM
+				M_i = m_i*eye(3);
+				obj.M_i{i} = M_i;
+				
+				J_bar_i = [	J_xx_bar_i,	0,		0;...
+							0,			J_yy_bar_i, 0;...
+							0,			0,		J_zz_bar_i;];
+				obj.J_bar_i{i} = J_bar_i;
+				
+				obj.M(3*(i-1)+1:3*(i-1)+3,3*(i-1)+1:3*(i-1)+3) = M_i;
+			end
 
 			
 		end
