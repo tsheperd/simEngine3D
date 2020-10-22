@@ -31,6 +31,9 @@ classdef simEngine3D < handle
 		gamma_G
 		Jacobian_G
 		
+		Jacobian_r_G
+		Jacobian_p_G
+		
 		tol
 		
 		m
@@ -160,6 +163,9 @@ classdef simEngine3D < handle
 			obj.gamma_G = zeros(obj.N_Cons, 1);
 			obj.Jacobian_G = zeros(obj.N_Cons, obj.N_params);
 			
+			obj.Jacobian_r_G = zeros(obj.N_GCons, 3*obj.N_Bodies);
+			obj.Jacobian_p_G = zeros(obj.N_GCons, 4*obj.N_Bodies);
+			
 			
 			% Compute Phi_G, nu_G, gamma_G, Jacobian_G
 			Global_Phi_nu_gamma_Jacobian(obj, 1, [1, 1, 1, 1]);
@@ -261,12 +267,21 @@ classdef simEngine3D < handle
 				if i ~= 0
 					obj.Jacobian_G(k,7*(i-1)+1:7*(i-1)+3) = Jacobian_temp(1:3);
 					obj.Jacobian_G(k,7*(i-1)+4:7*(i-1)+7) = Jacobian_temp(4:7);
+					
+					obj.Jacobian_r_G(k,3*(i-1)+1:3*(i-1)+3) = Jacobian_temp(1:3);
+					obj.Jacobian_p_G(k,4*(i-1)+1:4*(i-1)+4) = Jacobian_temp(4:7);
 				end
 				% If the second body is not ground
 				if j ~= 0
 					obj.Jacobian_G(k,7*(j-1)+1:7*(j-1)+3) = Jacobian_temp(8:10);
 					obj.Jacobian_G(k,7*(j-1)+4:7*(j-1)+7) = Jacobian_temp(11:14);
+					
+					obj.Jacobian_r_G(k,3*(j-1)+1:3*(j-1)+3) = Jacobian_temp(8:10);
+					obj.Jacobian_p_G(k,4*(j-1)+1:4*(j-1)+4) = Jacobian_temp(11:14);
 				end
+				
+				
+
 			end
 
 			% Calculate from each Euler parameter constraint
@@ -325,9 +340,41 @@ classdef simEngine3D < handle
 							0,			0,		J_zz_bar_i;];
 				obj.J_bar_i{i} = J_bar_i;
 				
+				% Push the M_i for the body to the global M
 				obj.M(3*(i-1)+1:3*(i-1)+3,3*(i-1)+1:3*(i-1)+3) = M_i;
 			end
-
+			
+			
+			for tt = 1:obj.N_t
+				obj.q(:,tt)
+				
+				% For each body, calculate M_i, J_bar_i
+				for i = 1:obj.N_Bodies
+					p_i = obj.q(7*(i-1)+1+3:7*(i-1)+7,tt);
+					p_i_dot = obj.q_dot(7*(i-1)+1+3:7*(i-1)+7,tt);
+					p_i_ddot = obj.q_ddot(7*(i-1)+1+3:7*(i-1)+7,tt);
+					
+					% Calculate the J_P_i for the body
+					J_bar_i = obj.J_bar_i{i};
+					J_P_i = 4*G(p_i)'*J_bar_i*G(p_i);
+					
+					% Push the J_P_i for the body to the global J_P
+					obj.J_P(4*(i-1)+1:4*(i-1)+4,4*(i-1)+1:4*(i-1)+4) = J_P_i;
+					
+					% Global P
+					obj.J_P(i,4*(i-1)+1:4*(i-1)+4) = p_i';
+				end
+				
+				% Compute Jacobian_G
+				Global_Phi_nu_gamma_Jacobian(obj, tt, [0, 0, 0, 1]);
+				
+				%obj.Jacobian_r_G
+				%obj.Jacobian_p_G
+				
+				
+				
+				
+			end
 			
 		end
 		
