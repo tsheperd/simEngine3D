@@ -24,6 +24,7 @@ p_ini_norm = norm(p_ini)
 r_ini = A_ini*[2,0,0]'
 
 
+%% Calculate the model parameters
 L = 2;
 rho = 7800;
 a = 2*L;
@@ -176,9 +177,6 @@ theta = @(t)(pi/4*cos(2*t));
 theta_dot = @(t)(-1/2*pi*sin(2*t));
 theta_ddot = @(t)(-pi*cos(2*t));
 
-%ff = @(t)cos(pi/4*cos(2*t));
-%figure;plot(0:.01:10,ff(0:.01:10));
-
 for tt = 1:simulation.N_t
 	ttt = simulation.t(tt);
 	r_ana_i = [0,L*sin(theta(ttt)),-L*cos(theta(ttt))]';
@@ -231,7 +229,23 @@ if SAVE_PLOTS
 	saveas(gcf,'Q_Analytical_Plot.png');
 end
 
+%{
+%% Deviations from the analytical
+dev_r_x = norm(simulation.q(1,:)-r_ana(1,:))
+dev_r_y = norm(simulation.q(2,:)-r_ana(2,:))
+dev_r_z = norm(simulation.q(3,:)-r_ana(3,:))
 
+dev_r_dot_x = norm(simulation.q_dot(1,:)-r_ana_dot(1,:))
+dev_r_dot_y = norm(simulation.q_dot(2,:)-r_ana_dot(2,:))
+dev_r_dot_z = norm(simulation.q_dot(3,:)-r_ana_dot(3,:))
+
+dev_r_ddot_x = norm(simulation.q_ddot(1,:)-r_ana_ddot(1,:))
+dev_r_ddot_y = norm(simulation.q_ddot(2,:)-r_ana_ddot(2,:))
+dev_r_ddot_z = norm(simulation.q_ddot(3,:)-r_ana_ddot(3,:))
+%}
+
+
+%% Reaction Forces
 % Torque Plot
 figure;
 for tt = 1:simulation.N_t
@@ -239,7 +253,6 @@ for tt = 1:simulation.N_t
 		TT = simulation.tau_rxn{tt}{1,kk};
 	end
 	tau(:,tt) = TT;
-	%tau(:,tt) = simulation.tau_rxn{tt}{1,6};
 end
 hold on;
 plot(simulation.t, tau(1,:));
@@ -259,7 +272,7 @@ end
 % Force Plot
 figure;
 for tt = 1:simulation.N_t
-	for kk = 5:5
+	for kk = 1:6
 		FF = simulation.F_rxn{tt}{1,kk};
 	end
 	F(:,tt) = FF;
@@ -276,22 +289,6 @@ hold off;
 if SAVE_PLOTS
 	saveas(gcf,'Force_Plot.png');
 end
-%}
-
-
-%{
-%% Deviations from the analytical
-dev_r_x = norm(simulation.q(1,:)-r_ana(1,:))
-dev_r_y = norm(simulation.q(2,:)-r_ana(2,:))
-dev_r_z = norm(simulation.q(3,:)-r_ana(3,:))
-
-dev_r_dot_x = norm(simulation.q_dot(1,:)-r_ana_dot(1,:))
-dev_r_dot_y = norm(simulation.q_dot(2,:)-r_ana_dot(2,:))
-dev_r_dot_z = norm(simulation.q_dot(3,:)-r_ana_dot(3,:))
-
-dev_r_ddot_x = norm(simulation.q_ddot(1,:)-r_ana_ddot(1,:))
-dev_r_ddot_y = norm(simulation.q_ddot(2,:)-r_ana_ddot(2,:))
-dev_r_ddot_z = norm(simulation.q_ddot(3,:)-r_ana_ddot(3,:))
 %}
 
 

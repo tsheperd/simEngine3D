@@ -272,6 +272,7 @@ classdef simEngine3D < handle
 					obj.Jacobian_G(k,7*(i-1)+1:7*(i-1)+3) = Jacobian_temp(1:3);
 					obj.Jacobian_G(k,7*(i-1)+4:7*(i-1)+7) = Jacobian_temp(4:7);
 					
+					% Create a Phi_r and Phi_q for using in dynamics
 					obj.Jacobian_r_G(k,3*(i-1)+1:3*(i-1)+3) = Jacobian_temp(1:3);
 					obj.Jacobian_p_G(k,4*(i-1)+1:4*(i-1)+4) = Jacobian_temp(4:7);
 				end
@@ -280,12 +281,10 @@ classdef simEngine3D < handle
 					obj.Jacobian_G(k,7*(j-1)+1:7*(j-1)+3) = Jacobian_temp(8:10);
 					obj.Jacobian_G(k,7*(j-1)+4:7*(j-1)+7) = Jacobian_temp(11:14);
 					
+					% Create a Phi_r and Phi_q for using in dynamics
 					obj.Jacobian_r_G(k,3*(j-1)+1:3*(j-1)+3) = Jacobian_temp(8:10);
 					obj.Jacobian_p_G(k,4*(j-1)+1:4*(j-1)+4) = Jacobian_temp(11:14);
 				end
-				
-				
-
 			end
 
 			% Calculate from each Euler parameter constraint
@@ -308,6 +307,7 @@ classdef simEngine3D < handle
 			% etc...
 			obj.KinematicSolver(t_i_temp, dt_temp, t_f_temp, tol_temp);
 			
+			% Get gravity
 			g = obj.input.gravity;
 			
 			% Initialize Global M, J_P, P matricies
@@ -318,12 +318,12 @@ classdef simEngine3D < handle
 			r_ddot = zeros(3*obj.N_Bodies, 1);
 			p_ddot = zeros(4*obj.N_Bodies, 1);
 			
+			% Initialize force and torque vectors
 			F = zeros(3*obj.N_Bodies, 1);
 			tau = zeros(4*obj.N_Bodies, 1);
 			
 			% For each body, calculate M_i, J_bar_i
 			for i = 1:obj.N_Bodies
-				
 				% Grab parameters from input deck on dynamic rel. params
 				% Mass
 				m_i = obj.input.bodies(i).m;
@@ -345,6 +345,7 @@ classdef simEngine3D < handle
 				M_i = m_i*eye(3);
 				obj.M_i{i} = M_i;
 				
+				% J_bar
 				J_bar_i = [	J_xx_bar_i,	0,		0;...
 							0,			J_yy_bar_i, 0;...
 							0,			0,		J_zz_bar_i;];
@@ -355,10 +356,8 @@ classdef simEngine3D < handle
 				
 			end
 			
-			
+			% Perform for each timestep
 			for tt = 1:obj.N_t
-				%obj.q(:,tt);
-				
 				% For each body, calculate M_i, J_bar_i
 				for i = 1:obj.N_Bodies
 					r_i = obj.q(7*(i-1)+1+0:7*(i-1)+3,tt);
@@ -381,6 +380,8 @@ classdef simEngine3D < handle
 					% Global P
 					obj.P(i,4*(i-1)+1:4*(i-1)+4) = p_i';
 					
+					% Placeholder forces/torques, just gravity for now, could get
+					% later from the input deck, etc.
 					m_i = obj.m(i,1);
 					F_m_i = m_i*g;
 					F_a_i = zeros(3,1);
@@ -398,10 +399,6 @@ classdef simEngine3D < handle
 				% Compute Jacobian_G
 				Global_Phi_nu_gamma_Jacobian(obj, tt, [0, 0, 0, 1]);
 				
-				%obj.Jacobian_r_G
-				%obj.Jacobian_p_G
-				
-				
 				% LHS of the inverse kinematics equation
 				LHS = [obj.Jacobian_r_G', zeros(3*obj.N_Bodies, obj.N_Bodies);...
 					 obj.Jacobian_p_G', obj.P';];
@@ -417,8 +414,9 @@ classdef simEngine3D < handle
 				lambda = lambda_v(1:obj.N_GCons,1);
 				lambda_P = lambda_v(obj.N_GCons+1:end,1);
 				
-				% Calculate the reaction torques and forces
+				% Calculate the reaction torques and forces for each body
 				for i = 1:obj.N_Bodies
+					% G
 					p_i = obj.q(7*(i-1)+1+3:7*(i-1)+7,tt);
 					Jacobian_r_i = obj.Jacobian_r_G(:,3*(i-1)+1:3*(i-1)+3);
 					Jacobian_p_i = obj.Jacobian_p_G(:,4*(i-1)+1:4*(i-1)+4);
@@ -426,7 +424,8 @@ classdef simEngine3D < handle
 					% Solve reaction forces from each GCon
 					for j = 1:obj.N_GCons
 						obj.F_rxn{tt}{i,j} = -Jacobian_r_i(j,:)'*lambda(j);
-						obj.tau_rxn_bar{tt}{i,j} = -1/2*G(p_i)*(Jacobian_p_i(j,:)'*lambda(j));
+						obj.tau_rxn_bar{tt}{i,j} = -(1/2*G(p_i)*Jacobian_p_i(j,:)')*lambda(j);
+						% Convert to global
 						obj.tau_rxn{tt}{i,j} = A(p_i)*obj.tau_rxn_bar{tt}{i,j};
 					end
 				end
