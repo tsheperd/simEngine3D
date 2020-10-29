@@ -48,7 +48,7 @@ simulation = simEngine3D;
 simulation.ReadInputDeck("revJoint.mdl");
 
 % Run the kinematic solver: (t_initial, dt, t_final, tolerance)
-simulation.DynamicsSolver(0, 0.01, 10, 1e-6);
+simulation.DynamicsSolver(0, 0.1, 10, 1e-2);
 
 
 %% Output final timestep information

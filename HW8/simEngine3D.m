@@ -53,6 +53,14 @@ classdef simEngine3D < handle
 		F_rxn
 		tau_rxn
 		tau_rxn_bar
+        
+        r
+        r_dot
+        r_ddot
+        
+        p
+        p_dot
+        p_ddot
 	end
 	methods
 		
@@ -324,7 +332,7 @@ classdef simEngine3D < handle
 			
 			r_ddot = zeros(3*obj.N_Bodies, 1);
 			p_ddot = zeros(4*obj.N_Bodies, 1);
-			
+            
 			F = zeros(3*obj.N_Bodies, 1);
 			tau = zeros(4*obj.N_Bodies, 1);
 			
@@ -444,10 +452,14 @@ classdef simEngine3D < handle
 		
 		
         %% Function to act as the Dynamics Solver
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		function obj = DynamicsSolver(obj, t_i_temp, dt_temp, t_f_temp, tol_temp)
 			% Function to initialize the data arrays, etc.
 			initializeSolver(obj, t_i_temp, dt_temp, t_f_temp, tol_temp);
 			
+            h = dt_temp;
+            
+            
             % Gravity
 			g = obj.input.gravity;
 			
@@ -459,7 +471,16 @@ classdef simEngine3D < handle
 			r_ddot = zeros(3*obj.N_Bodies, 1);
 			p_ddot = zeros(4*obj.N_Bodies, 1);
 			
-			F = zeros(3*obj.N_Bodies, 1);
+            obj.r = zeros(3*obj.N_Bodies, obj.N_t);
+			obj.p = zeros(4*obj.N_Bodies, obj.N_t);
+            
+            obj.r_dot = zeros(3*obj.N_Bodies, obj.N_t);
+			obj.p_dot = zeros(4*obj.N_Bodies, obj.N_t);
+            
+            obj.r_ddot = zeros(3*obj.N_Bodies, obj.N_t);
+			obj.p_ddot = zeros(4*obj.N_Bodies, obj.N_t);
+			
+            F = zeros(3*obj.N_Bodies, 1);
 			tau = zeros(4*obj.N_Bodies, 1);
 			
             % For each body, calculate M_i, J_bar_i
@@ -494,80 +515,112 @@ classdef simEngine3D < handle
 				% Push the M_i for the body to the global M
 				obj.M(3*(i-1)+1:3*(i-1)+3,3*(i-1)+1:3*(i-1)+3) = M_i;
 				
-            end
+			end
             
-            for tt = 1:obj.N_t
-				% For each body, calculate M_i, J_bar_i
-				for i = 1:obj.N_Bodies
-					r_i = obj.q(7*(i-1)+1+0:7*(i-1)+3,tt);
-					r_i_dot = obj.q_dot(7*(i-1)+1+0:7*(i-1)+3,tt);
-					r_i_ddot = obj.q_ddot(7*(i-1)+1+0:7*(i-1)+3,tt);
-					p_i = obj.q(7*(i-1)+1+3:7*(i-1)+7,tt);
-					p_i_dot = obj.q_dot(7*(i-1)+1+3:7*(i-1)+7,tt);
-					p_i_ddot = obj.q_ddot(7*(i-1)+1+3:7*(i-1)+7,tt);
-					
-					r_ddot(3*(i-1)+1+0:3*(i-1)+3) = r_i_ddot;
-					p_ddot(4*(i-1)+1+0:4*(i-1)+4) = p_i_ddot;
-					
-					% Calculate the J_P_i for the body
-					J_bar_i = obj.J_bar_i{i};
-					J_P_i = 4*G(p_i)'*J_bar_i*G(p_i);
-					
-					% Push the J_P_i for the body to the global J_P
-					obj.J_P(4*(i-1)+1:4*(i-1)+4,4*(i-1)+1:4*(i-1)+4) = J_P_i;
-					
-					% Global P
-					obj.P(i,4*(i-1)+1:4*(i-1)+4) = p_i';
-					
-					m_i = obj.m(i,1);
-					F_m_i = m_i*g;
-					F_a_i = zeros(3,1);
+			tt = 1;
+			for i = 1:obj.N_Bodies
+				r_i = obj.q(7*(i-1)+1+0:7*(i-1)+3,tt);
+				r_i_dot = obj.q_dot(7*(i-1)+1+0:7*(i-1)+3,tt);
+				r_i_ddot = obj.q_ddot(7*(i-1)+1+0:7*(i-1)+3,tt);
 
-					n_m_bar_i = zeros(3,1);
-					n_a_bar_i = zeros(3,1);
+				p_i = obj.q(7*(i-1)+1+3:7*(i-1)+7,tt);
+				p_i_dot = obj.q_dot(7*(i-1)+1+3:7*(i-1)+7,tt);
+				p_i_ddot = obj.q_ddot(7*(i-1)+1+3:7*(i-1)+7,tt);
 
-					% Calculate the force per body
-					F(3*(i-1)+1:3*(i-1)+3,1) = F_m_i + F_a_i;
-					
-					% Calculate the torque per body
-					tau(4*(i-1)+1:4*(i-1)+4,1) = 2*G(p_i)'*(n_m_bar_i + n_a_bar_i)+8*G(p_i_dot)'*J_bar_i*G(p_i_dot)*p_i;
+				obj.r(3*(i-1)+1+0:3*(i-1)+3) = r_i;
+				obj.r_dot(3*(i-1)+1+0:3*(i-1)+3) = r_i_dot;
+				obj.r_ddot(3*(i-1)+1+0:3*(i-1)+3) = r_i_ddot;
+
+				obj.p(4*(i-1)+1+0:4*(i-1)+4) = p_i;
+				obj.p_dot(4*(i-1)+1+0:4*(i-1)+4) = p_i_dot;
+				obj.p_ddot(4*(i-1)+1+0:4*(i-1)+4) = p_i_ddot;
+			end
+            
+            % Loop over the second to the last time steps
+            for tt = 2:obj.N_t
+                n = tt;
+				
+				% Initial guess for r_ddot and p_ddot
+                obj.r_ddot(:,n) = obj.r_ddot(:,n-1);
+				obj.p_ddot(:,n) = obj.p_ddot(:,n-1);
+				
+                % Calculate the BDF coefficients
+                if n == 2
+                    % For the first calculation use a BDF 1
+                    % Paramteters from the BDF table
+                    alpha_1 = -1;
+                    beta_0 = 1;
+                    
+                    % Constants used for r, r_dot, p, p_dot
+                    C_r_n = -alpha_1*obj.r(:,n-1) + beta_0*h*(-alpha_1*obj.r_dot(:,n-1));
+                    C_r_dot_n = -alpha_1*obj.r_dot(:,n-1);
+                    
+                    C_p_n = -alpha_1*obj.p(:,n-1) + beta_0*h*(-alpha_1*obj.p_dot(:,n-1));
+                    C_p_dot_n = -alpha_1*obj.p_dot(:,n-1);
+                else
+                    % For not the first calculation use a BDF 2
+                    % Paramteters from the BDF table
+                    alpha_1 = -4/3;
+                    alpha_2 = 1/3;
+                    beta_0 = 2/3;
+                    
+                    % Constants used for r, r_dot, p, p_dot
+                    C_r_n = -alpha_1*obj.r(:,n-1) - alpha_2*obj.r(:,n-2) + beta_0*h*(-alpha_1*obj.r_dot(:,n-1) - alpha_2*obj.r_dot(:,n-2));
+                    C_r_dot_n = -alpha_1*obj.r_dot(:,n-1) - alpha_2*obj.r_dot(:,n-2);
+                    
+                    C_p_n = -alpha_1*obj.p(:,n-1) - alpha_2*obj.p(:,n-2) + beta_0*h*(-alpha_1*obj.p_dot(:,n-1) - alpha_2*obj.p_dot(:,n-2));
+                    C_p_dot_n = -alpha_1*obj.p_dot(:,n-1) - alpha_2*obj.p_dot(:,n-2);
 				end
-				
-				% Compute Jacobian_G
-				Global_Phi_nu_gamma_Jacobian(obj, tt, [0, 0, 0, 1]);
-				
-				%obj.Jacobian_r_G
-				%obj.Jacobian_p_G
-				
-				
-				% LHS of the inverse kinematics equation
-				LHS = [obj.Jacobian_r_G', zeros(3*obj.N_Bodies, obj.N_Bodies);...
-					 obj.Jacobian_p_G', obj.P';];
-				
-				% RHS of the inverse kinematics equation
-				RHS = [F - obj.M*r_ddot;...
-					 tau - obj.J_P*p_ddot;];
-				
-				% Solve for all of the lagrange multipliers
-				lambda_v = LHS\RHS;
-				
-				% Extract the kinematic and euler LM
-				lambda = lambda_v(1:obj.N_GCons,1);
-				lambda_P = lambda_v(obj.N_GCons+1:end,1);
-				
-				% Calculate the reaction torques and forces
-				for i = 1:obj.N_Bodies
-					p_i = obj.q(7*(i-1)+1+3:7*(i-1)+7,tt);
-					Jacobian_r_i = obj.Jacobian_r_G(:,3*(i-1)+1:3*(i-1)+3);
-					Jacobian_p_i = obj.Jacobian_p_G(:,4*(i-1)+1:4*(i-1)+4);
+                
+				% Newton-Raphson iterative approach to solving the
+				% current z
+				dz = 1;
+				k = 0;
+				while abs(norm(dz,2)) > obj.tol
+					% Current acceleration
+					r_ddot_n = obj.r_ddot(:,n);
+					p_ddot_n = obj.p_ddot(:,n);
+
+					% Current positions and velocities
+					r_n = C_r_n + beta_0^2*h^2*r_ddot_n;
 					
-					% Solve reaction forces from each GCon
-					for j = 1:obj.N_GCons
-						obj.F_rxn{tt}{i,j} = -Jacobian_r_i(j,:)'*lambda(j);
-						obj.tau_rxn_bar{tt}{i,j} = -1/2*G(p_i)*(Jacobian_p_i(j,:)'*lambda(j));
-						obj.tau_rxn{tt}{i,j} = A(p_i)*obj.tau_rxn_bar{tt}{i,j};
+					r_dot_n = C_r_dot_n + beta_0*h*r_ddot_n;
+					
+					p_n = C_p_n + beta_0^2*h^2*p_ddot_n;
+					p_dot_n = C_p_dot_n + beta_0*h*p_ddot_n;
+					
+					
+					nb = obj.N_Bodies;
+					nc = obj.N_GCons;
+					%{
+g_n = [obj.M,	zeros(3*nb,4*nb),	zeros(3*nb,nb),	];
+					
+		J_P
+		P
+		N_Bodies
+		N_GCons
+		N_EPCons
+		N_Cons
+		
+		
+					
+					% Compute Phi_G, nu_G, gamma_G, Jacobian_G
+					Global_Phi_nu_gamma_Jacobian(obj, tt, [1, 0, 0, 1]);
+					
+					% Calculate the residual
+					dq = obj.Jacobian_G\obj.Phi_G;
+					
+					% Update the guess for q
+					obj.q(:,tt) = obj.q(:,tt) - dq;
+%}
+					% Breakout counter
+					k = k+1;
+					if (k > 1)
+						break;
+						disp("BREAK");
 					end
 				end
+				
 				
 			end
             
