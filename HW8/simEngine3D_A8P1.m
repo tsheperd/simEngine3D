@@ -1,4 +1,4 @@
-%% simEngine3D_A7P1 Driver Function
+%% simEngine3D_A8P1 Driver Function
 clear; close all; clc;
 % Profiler shows the timings, calls, etc.
 %profile on
@@ -48,7 +48,7 @@ simulation = simEngine3D;
 simulation.ReadInputDeck("revJoint.mdl");
 
 % Run the kinematic solver: (t_initial, dt, t_final, tolerance)
-simulation.InverseDynamicsSolver(0, 0.01, 10, 1e-6);
+simulation.DynamicsSolver(0, 0.01, 10, 1e-6);
 
 
 %% Output final timestep information
@@ -60,7 +60,7 @@ disp("gamma");
 simulation.gamma_G
 disp("Jacobian");
 simulation.Jacobian_G
-
+%{
 
 %% Calculate rho (vector to Q), rho_dot, rho_ddot for all times
 for tt = 1:simulation.N_t
@@ -293,7 +293,7 @@ dev_r_ddot_x = norm(simulation.q_ddot(1,:)-r_ana_ddot(1,:))
 dev_r_ddot_y = norm(simulation.q_ddot(2,:)-r_ana_ddot(2,:))
 dev_r_ddot_z = norm(simulation.q_ddot(3,:)-r_ana_ddot(3,:))
 %}
-
+%}
 
 toc;
 %profile viewer
