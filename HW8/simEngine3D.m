@@ -34,6 +34,9 @@ classdef simEngine3D < handle
 		Jacobian_r_G
 		Jacobian_p_G
 		
+		gamma_k_G
+		gamma_p_G
+		
 		tol
 		
 		m
@@ -61,6 +64,9 @@ classdef simEngine3D < handle
         p
         p_dot
         p_ddot
+		
+		lambda
+		lambda_p
 	end
 	methods
 		
@@ -221,7 +227,8 @@ classdef simEngine3D < handle
 					obj.Jacobian_p_G(k,4*(j-1)+1:4*(j-1)+4) = Jacobian_temp(11:14);
 				end
 				
-				
+				% Create a global kinematic gamma for dynamics
+				obj.gamma_k_G(k,1) = obj.gamma_G(k,1);
 
 			end
 
@@ -235,6 +242,8 @@ classdef simEngine3D < handle
 				obj.nu_G(k, 1) = 0;
 				obj.gamma_G(k, 1) = -2*p_i_dot'*p_i_dot;
 				obj.Jacobian_G(k,7*(i-1)+1+3:7*(i-1)+7) = 2*p_i';
+				
+				obj.gamma_p_G(i, 1) = -2*p_i_dot'*p_i_dot;
 			end
         end
 		
@@ -313,6 +322,9 @@ classdef simEngine3D < handle
 			
 			obj.Jacobian_r_G = zeros(obj.N_GCons, 3*obj.N_Bodies);
 			obj.Jacobian_p_G = zeros(obj.N_GCons, 4*obj.N_Bodies);
+			
+			obj.gamma_k_G = zeros(obj.N_GCons, 1);
+			obj.gamma_p_G = zeros(obj.N_EPCons, 1);
         end
         
         
@@ -458,7 +470,11 @@ classdef simEngine3D < handle
 			initializeSolver(obj, t_i_temp, dt_temp, t_f_temp, tol_temp);
 			
             h = dt_temp;
-            
+			
+			
+            nb = obj.N_Bodies;
+			nc = obj.N_GCons;
+			np = obj.N_EPCons;
             
             % Gravity
 			g = obj.input.gravity;
@@ -517,6 +533,14 @@ classdef simEngine3D < handle
 				
 			end
             
+			
+			
+			
+			
+			%%%%%%%%%%%%%%% Initial conditions
+			% For each body
+			% Calculate M_i, J_bar_i
+			% Populate obj.r, obj.p, etc from obj.q
 			tt = 1;
 			for i = 1:obj.N_Bodies
 				r_i = obj.q(7*(i-1)+1+0:7*(i-1)+3,tt);
@@ -534,8 +558,84 @@ classdef simEngine3D < handle
 				obj.p(4*(i-1)+1+0:4*(i-1)+4) = p_i;
 				obj.p_dot(4*(i-1)+1+0:4*(i-1)+4) = p_i_dot;
 				obj.p_ddot(4*(i-1)+1+0:4*(i-1)+4) = p_i_ddot;
+				
+				% Calculate the J_P_i for the body
+				J_bar_i = obj.J_bar_i{i};
+				J_P_i = 4*G(p_i)'*J_bar_i*G(p_i);
+
+				% Push the J_P_i for the body to the global J_P
+				obj.J_P(4*(i-1)+1:4*(i-1)+4,4*(i-1)+1:4*(i-1)+4) = J_P_i;
+
+				% Global P
+				obj.P(i,4*(i-1)+1:4*(i-1)+4) = p_i';
+
+				m_i = obj.m(i,1);
+				F_m_i = m_i*g;
+				F_a_i = zeros(3,1);
+
+				n_m_bar_i = zeros(3,1);
+				n_a_bar_i = zeros(3,1);
+
+				% Calculate the force per body
+				F(3*(i-1)+1:3*(i-1)+3,1) = F_m_i + F_a_i;
+
+				% Calculate the torque per body
+				tau(4*(i-1)+1:4*(i-1)+4,1) = 2*G(p_i)'*(n_m_bar_i + n_a_bar_i)+8*G(p_i_dot)'*J_bar_i*G(p_i_dot)*p_i;
 			end
             
+			% Compute Jacobian_G
+			Global_Phi_nu_gamma_Jacobian(obj, tt, [1, 1, 1, 1]);
+			
+			%obj.Jacobian_r_G
+			%obj.Jacobian_p_G
+			
+			LHS =	[obj.M,					zeros(3*nb,4*nb),	zeros(3*nb,nb),		obj.Jacobian_r_G';...
+					 zeros(4*nb,3*nb),		obj.J_P,			obj.P',				obj.Jacobian_p_G';...
+					 zeros(nb,3*nb),		obj.P,				zeros(nb,nb),		zeros(nb,nc);...
+					 obj.Jacobian_r_G,		obj.Jacobian_p_G,	zeros(nc,nb),		zeros(nc,nc);];
+			
+			RHS =	[F;...
+					 tau;...
+					 obj.gamma_p_G;...
+					 obj.gamma_k_G;];
+			
+			Z = LHS\RHS;
+			
+			% Extract values
+			obj.r_ddot(:,tt) = Z(1:3*nb,1);
+			obj.p_ddot(:,tt) = Z(3*nb+1:3*nb+4*nb,1);
+			obj.lambda_p(:,tt) = Z(3*nb+4*nb+1:3*nb+4*nb+np,1);
+			obj.lambda(:,tt) = Z(3*nb+4*nb+np+1:3*nb+4*nb+np+nc,1);
+			
+			% Update q
+			for i = 1:obj.N_Bodies
+				obj.q(7*(i-1)+1+0:7*(i-1)+3,tt) = obj.r(3*(i-1)+1+0:3*(i-1)+3);
+				obj.q_dot(7*(i-1)+1+0:7*(i-1)+3,tt) = obj.r_dot(3*(i-1)+1+0:3*(i-1)+3);
+				obj.q_ddot(7*(i-1)+1+0:7*(i-1)+3,tt) = obj.r_ddot(3*(i-1)+1+0:3*(i-1)+3);
+				
+				
+				obj.q(7*(i-1)+1+3:7*(i-1)+7,tt) = obj.p(4*(i-1)+1+0:4*(i-1)+4);
+				obj.q_dot(7*(i-1)+1+3:7*(i-1)+7,tt) = obj.p_dot(4*(i-1)+1+0:4*(i-1)+4);
+				obj.q_ddot(7*(i-1)+1+3:7*(i-1)+7,tt) = obj.p_ddot(4*(i-1)+1+0:4*(i-1)+4);
+			end
+			
+			% Calculate the reaction torques and forces
+			for i = 1:obj.N_Bodies
+				p_i = obj.q(7*(i-1)+1+3:7*(i-1)+7,tt);
+				Jacobian_r_i = obj.Jacobian_r_G(:,3*(i-1)+1:3*(i-1)+3);
+				Jacobian_p_i = obj.Jacobian_p_G(:,4*(i-1)+1:4*(i-1)+4);
+
+				% Solve reaction forces from each GCon
+				for j = 1:obj.N_GCons
+					obj.F_rxn{tt}{i,j} = -Jacobian_r_i(j,:)'*obj.lambda(j,tt);
+					obj.tau_rxn_bar{tt}{i,j} = -1/2*G(p_i)*(Jacobian_p_i(j,:)'*obj.lambda(j,tt));
+					obj.tau_rxn{tt}{i,j} = A(p_i)*obj.tau_rxn_bar{tt}{i,j};
+				end
+			end
+			
+			
+			%%{
+			
             % Loop over the second to the last time steps
             for tt = 2:obj.N_t
                 n = tt;
@@ -583,17 +683,15 @@ classdef simEngine3D < handle
 
 					% Current positions and velocities
 					r_n = C_r_n + beta_0^2*h^2*r_ddot_n;
-					
 					r_dot_n = C_r_dot_n + beta_0*h*r_ddot_n;
 					
 					p_n = C_p_n + beta_0^2*h^2*p_ddot_n;
 					p_dot_n = C_p_dot_n + beta_0*h*p_ddot_n;
 					
 					
-					nb = obj.N_Bodies;
-					nc = obj.N_GCons;
+					
 					%{
-g_n = [obj.M,	zeros(3*nb,4*nb),	zeros(3*nb,nb),	];
+					g_n = [obj.M,	zeros(3*nb,4*nb),	zeros(3*nb,nb),	];
 					
 		J_P
 		P
@@ -623,7 +721,7 @@ g_n = [obj.M,	zeros(3*nb,4*nb),	zeros(3*nb,nb),	];
 				
 				
 			end
-            
+            %%}
 		end
 	end
 	%methods(Static)
