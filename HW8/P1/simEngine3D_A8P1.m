@@ -35,6 +35,8 @@ J_yy_bar = 1/12*m*(a^2 + c^2)
 J_zz_bar = 1/12*m*(a^2 + b^2)
 
 
+
+
 %% Add library of functions to path
 addpath('./Functions');
 addpath('./Functions/Constraints');
@@ -48,7 +50,10 @@ simulation = simEngine3D;
 simulation.ReadInputDeck("revJoint.mdl");
 
 % Run the kinematic solver: (t_initial, dt, t_final, tolerance)
-simulation.DynamicsSolver(0, 0.1, 10, 1e-2);
+%simulation.InverseDynamicsSolver(0, 0.01, 10, 1e-6);
+simulation.DynamicsSolver(0, 0.005, 10, 1e-4);
+
+
 
 
 %% Output final timestep information
@@ -60,7 +65,7 @@ disp("gamma");
 simulation.gamma_G
 disp("Jacobian");
 simulation.Jacobian_G
-%{
+
 
 %% Calculate rho (vector to Q), rho_dot, rho_ddot for all times
 for tt = 1:simulation.N_t
@@ -163,6 +168,7 @@ title("O Global Acceleration");
 xlabel("t (s)");
 ylabel("acceleration (m/s^2)");
 legend('x','y','z');
+ylim([-5.125, 5.125]);
 hold off;
 if SAVE_PLOTS
 	saveas(gcf,'O_Plot.png');
@@ -187,6 +193,8 @@ for tt = 1:simulation.N_t
 	r_ana(:,tt) = r_ana_i;
 	r_ana_dot(:,tt) = ToTilde(omega_ana)*r_ana_i;
 	r_ana_ddot(:,tt) = ToTilde(omega_ana)*ToTilde(omega_ana)*r_ana_i + ToTilde(omega_ana_dot)*r_ana_i;
+	
+	omega_ana_store(:,tt) = omega_ana;
 end
 
 % O Analytical Position plot
@@ -232,51 +240,93 @@ if SAVE_PLOTS
 end
 
 
-% Torque Plot
+% Analytical Omega plot
 figure;
-for tt = 1:simulation.N_t
-	for kk = 1:6
-		TT = simulation.tau_rxn{tt}{1,kk};
-	end
-	tau(:,tt) = TT;
-	%tau(:,tt) = simulation.tau_rxn{tt}{1,6};
-end
 hold on;
-plot(simulation.t, tau(1,:));
-plot(simulation.t, tau(2,:));
-plot(simulation.t, tau(3,:));
-title("Torque");
+plot(simulation.t, omega_ana_store(1,:));
+plot(simulation.t, omega_ana_store(2,:));
+plot(simulation.t, omega_ana_store(3,:));
+title("\omega: Analytical");
 xlabel("t (s)");
-ylabel("torque (N-m)");
+ylabel("\omega (rad/s)");
 legend('x','y','z');
 hold off;
 if SAVE_PLOTS
-	saveas(gcf,'Torque_Plot.png');
+	saveas(gcf,'omega_Analytical_Plot.png');
 end
 
 
-%{
-% Force Plot
-figure;
-for tt = 1:simulation.N_t
-	for kk = 5:5
-		FF = simulation.F_rxn{tt}{1,kk};
+%% Torque Plot
+for i = 1:simulation.N_Bodies
+	for tt = 1:simulation.N_t
+		%{
+		TT = 0;
+		% For each kinematic constraint
+		for GCon_idx = 1:6
+			TT = TT + simulation.tau_rxn{i}{GCon_idx,tt};
+		end
+		tau(:,tt) = TT;
+		%}
+
+		% But only looking for the driving GCon
+		GCon_idx = 6;
+		tau(:,tt) = simulation.tau_rxn{i}{GCon_idx,tt};
 	end
-	F(:,tt) = FF;
+	figure;
+	hold on;
+	plot(simulation.t, tau(1,:));
+	plot(simulation.t, tau(2,:));
+	plot(simulation.t, tau(3,:));
+	title("Torque");
+	xlabel("t (s)");
+	ylabel("torque (N-m)");
+	legend('x','y','z');
+	ylim([-250, 250]);
+	hold off;
+	if SAVE_PLOTS
+		saveas(gcf,['Torque_Plot_',num2str(i),'.png']);
+	end
 end
+
+
+%% Velocity Violation Plot
+i = 1;
+figure;
 hold on;
-plot(simulation.t, F(1,:));
-plot(simulation.t, F(2,:));
-plot(simulation.t, F(3,:));
-title("Force");
+plot(simulation.t, simulation.v_violation{i});
+title(['Velocity Violation of Joint ' num2str(i)]);
 xlabel("t (s)");
-ylabel("F (N)");
-legend('x','y','z');
+ylabel("Velocity Violation (m/s)");
+ylim([0, 1e-3]);
 hold off;
 if SAVE_PLOTS
-	saveas(gcf,'Force_Plot.png');
+	saveas(gcf,'Velocity_Violation_Plot.png');
 end
-%}
+
+
+%% Calculate and Plot omega of each body for all times
+for i = 1:simulation.N_Bodies
+	% Calculate omega per body
+	for tt = 1:simulation.N_t
+		omega{i}(:,tt) = 2*E(simulation.p(4*(i-1)+1:4*(i-1)+4,tt))*simulation.p_dot(4*(i-1)+1:4*(i-1)+4,tt);
+	end
+	
+	% Omega Plot per body
+	figure;
+	hold on;
+	plot(simulation.t,omega{i}(1,:));
+	plot(simulation.t,omega{i}(2,:));
+	plot(simulation.t,omega{i}(3,:));
+	title(['\omega Body ' num2str(i)]);
+	xlabel("t (s)");
+	ylabel("\omega (rad/s)");
+	legend('x','y','z');
+	hold off;
+	if SAVE_PLOTS
+		saveas(gcf,['omega_Body_',num2str(i),'_Plot.png']);
+	end
+end
+
 
 
 %{
@@ -293,7 +343,7 @@ dev_r_ddot_x = norm(simulation.q_ddot(1,:)-r_ana_ddot(1,:))
 dev_r_ddot_y = norm(simulation.q_ddot(2,:)-r_ana_ddot(2,:))
 dev_r_ddot_z = norm(simulation.q_ddot(3,:)-r_ana_ddot(3,:))
 %}
-%}
+
 
 toc;
 %profile viewer

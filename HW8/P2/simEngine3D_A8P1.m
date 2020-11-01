@@ -1,4 +1,4 @@
-%% simEngine3D_A6P3 Driver Function
+%% simEngine3D_A8P1 Driver Function
 clear; close all; clc;
 % Profiler shows the timings, calls, etc.
 %profile on
@@ -8,6 +8,7 @@ tic;
 
 % Booleans
 SAVE_PLOTS = 0;
+
 
 %% Initial state
 theta_ini = pi/4*cos(2*0);
@@ -23,6 +24,19 @@ p_ini_norm = norm(p_ini)
 r_ini = A_ini*[2,0,0]'
 
 
+L = 2;
+rho = 7800;
+a = 2*L;
+b = 0.05;
+c = b;
+m = rho*a*b*c
+J_xx_bar = 1/12*m*(b^2 + c^2)
+J_yy_bar = 1/12*m*(a^2 + c^2)
+J_zz_bar = 1/12*m*(a^2 + b^2)
+
+
+
+
 %% Add library of functions to path
 addpath('./Functions');
 addpath('./Functions/Constraints');
@@ -36,7 +50,10 @@ simulation = simEngine3D;
 simulation.ReadInputDeck("revJoint.mdl");
 
 % Run the kinematic solver: (t_initial, dt, t_final, tolerance)
-simulation.KinematicSolver(0, 0.1, 10, 1e-6);
+%simulation.InverseDynamicsSolver(0, 0.01, 10, 1e-6);
+simulation.DynamicsSolver(0, 0.005, 10, 1e-4);
+
+
 
 
 %% Output final timestep information
@@ -151,6 +168,7 @@ title("O Global Acceleration");
 xlabel("t (s)");
 ylabel("acceleration (m/s^2)");
 legend('x','y','z');
+ylim([-5.125, 5.125]);
 hold off;
 if SAVE_PLOTS
 	saveas(gcf,'O_Plot.png');
@@ -175,6 +193,8 @@ for tt = 1:simulation.N_t
 	r_ana(:,tt) = r_ana_i;
 	r_ana_dot(:,tt) = ToTilde(omega_ana)*r_ana_i;
 	r_ana_ddot(:,tt) = ToTilde(omega_ana)*ToTilde(omega_ana)*r_ana_i + ToTilde(omega_ana_dot)*r_ana_i;
+	
+	omega_ana_store(:,tt) = omega_ana;
 end
 
 % O Analytical Position plot
@@ -219,8 +239,98 @@ if SAVE_PLOTS
 	saveas(gcf,'Q_Analytical_Plot.png');
 end
 
+
+% Analytical Omega plot
+figure;
+hold on;
+plot(simulation.t, omega_ana_store(1,:));
+plot(simulation.t, omega_ana_store(2,:));
+plot(simulation.t, omega_ana_store(3,:));
+title("\omega: Analytical");
+xlabel("t (s)");
+ylabel("\omega (rad/s)");
+legend('x','y','z');
+hold off;
+if SAVE_PLOTS
+	saveas(gcf,'omega_Analytical_Plot.png');
+end
+
+
+%% Torque Plot
+for i = 1:simulation.N_Bodies
+	for tt = 1:simulation.N_t
+		%{
+		TT = 0;
+		% For each kinematic constraint
+		for GCon_idx = 1:6
+			TT = TT + simulation.tau_rxn{i}{GCon_idx,tt};
+		end
+		tau(:,tt) = TT;
+		%}
+
+		% But only looking for the driving GCon
+		GCon_idx = 6;
+		tau(:,tt) = simulation.tau_rxn{i}{GCon_idx,tt};
+	end
+	figure;
+	hold on;
+	plot(simulation.t, tau(1,:));
+	plot(simulation.t, tau(2,:));
+	plot(simulation.t, tau(3,:));
+	title("Torque");
+	xlabel("t (s)");
+	ylabel("torque (N-m)");
+	legend('x','y','z');
+	ylim([-250, 250]);
+	hold off;
+	if SAVE_PLOTS
+		saveas(gcf,['Torque_Plot_',num2str(i),'.png']);
+	end
+end
+
+
+%% Velocity Violation Plot
+i = 1;
+figure;
+hold on;
+plot(simulation.t, simulation.v_violation{i});
+title(['Velocity Violation of Joint ' num2str(i)]);
+xlabel("t (s)");
+ylabel("Velocity Violation (m/s)");
+ylim([0, 1e-3]);
+hold off;
+if SAVE_PLOTS
+	saveas(gcf,'Velocity_Violation_Plot.png');
+end
+
+
+%% Calculate and Plot omega of each body for all times
+for i = 1:simulation.N_Bodies
+	% Calculate omega per body
+	for tt = 1:simulation.N_t
+		omega{i}(:,tt) = 2*E(simulation.p(4*(i-1)+1:4*(i-1)+4,tt))*simulation.p_dot(4*(i-1)+1:4*(i-1)+4,tt);
+	end
+	
+	% Omega Plot per body
+	figure;
+	hold on;
+	plot(simulation.t,omega{i}(1,:));
+	plot(simulation.t,omega{i}(2,:));
+	plot(simulation.t,omega{i}(3,:));
+	title(['\omega Body ' num2str(i)]);
+	xlabel("t (s)");
+	ylabel("\omega (rad/s)");
+	legend('x','y','z');
+	hold off;
+	if SAVE_PLOTS
+		saveas(gcf,['omega_Body_',num2str(i),'_Plot.png']);
+	end
+end
+
+
+
 %{
-% Deviations from the analytical
+%% Deviations from the analytical
 dev_r_x = norm(simulation.q(1,:)-r_ana(1,:))
 dev_r_y = norm(simulation.q(2,:)-r_ana(2,:))
 dev_r_z = norm(simulation.q(3,:)-r_ana(3,:))
@@ -233,6 +343,7 @@ dev_r_ddot_x = norm(simulation.q_ddot(1,:)-r_ana_ddot(1,:))
 dev_r_ddot_y = norm(simulation.q_ddot(2,:)-r_ana_ddot(2,:))
 dev_r_ddot_z = norm(simulation.q_ddot(3,:)-r_ana_ddot(3,:))
 %}
+
 
 toc;
 %profile viewer

@@ -233,25 +233,35 @@ end
 
 
 % Torque Plot
-figure;
-for tt = 1:simulation.N_t
-	for kk = 1:6
-		TT = simulation.tau_rxn{tt}{1,kk};
+for i = 1:simulation.N_Bodies
+	for tt = 1:simulation.N_t
+		%{
+		TT = 0;
+		% For each kinematic constraint
+		for GCon_idx = 1:6
+			TT = TT + simulation.tau_rxn{i}{GCon_idx,tt};
+		end
+		tau(:,tt) = TT;
+		%}
+
+		% But only looking for the driving GCon
+		GCon_idx = 6;
+		tau(:,tt) = simulation.tau_rxn{i}{GCon_idx,tt};
 	end
-	tau(:,tt) = TT;
-	%tau(:,tt) = simulation.tau_rxn{tt}{1,6};
-end
-hold on;
-plot(simulation.t, tau(1,:));
-plot(simulation.t, tau(2,:));
-plot(simulation.t, tau(3,:));
-title("Torque");
-xlabel("t (s)");
-ylabel("torque (N-m)");
-legend('x','y','z');
-hold off;
-if SAVE_PLOTS
-	saveas(gcf,'Torque_Plot.png');
+	figure;
+	hold on;
+	plot(simulation.t, tau(1,:));
+	plot(simulation.t, tau(2,:));
+	plot(simulation.t, tau(3,:));
+	title("Torque");
+	xlabel("t (s)");
+	ylabel("torque (N-m)");
+	legend('x','y','z');
+	ylim([-250, 250]);
+	hold off;
+	if SAVE_PLOTS
+		saveas(gcf,['Torque_Plot_',num2str(i),'.png']);
+	end
 end
 
 
