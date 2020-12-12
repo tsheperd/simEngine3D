@@ -4,8 +4,8 @@ function [Phi, nu, gamma, Jacobian] = Phi_D(constraint, q_i, q_j,  q_i_dot, q_j_
 	i = constraint.i;
 	j = constraint.j;
 	
-	a_i_bar = constraint.a_i_bar;
-	a_j_bar = constraint.a_j_bar;
+	%a_i_bar = constraint.a_i_bar;
+	%a_j_bar = constraint.a_j_bar;
 	
 	s_i_bar = constraint.s_i_bar;
 	s_j_bar = constraint.s_j_bar;
@@ -28,12 +28,12 @@ function [Phi, nu, gamma, Jacobian] = Phi_D(constraint, q_i, q_j,  q_i_dot, q_j_
     A_j = A(p_j);
     
     % Calculate global a vectors
-    a_i = A_i*a_i_bar;
-    a_j = A_j*a_j_bar;
+    %a_i = A_i*a_i_bar;
+    %a_j = A_j*a_j_bar;
     
     % Calculate global a vector time derivatives
-    a_i_dot = B(p_i, a_i_bar)*p_i_dot;
-    a_j_dot = B(p_j, a_j_bar)*p_j_dot;
+    %a_i_dot = B(p_i, a_i_bar)*p_i_dot;
+    %a_j_dot = B(p_j, a_j_bar)*p_j_dot;
     
     % Calculate distance vector and its time derivative
     d_ij = r_j + A_j*s_j_bar - r_i - A_i*s_i_bar;
