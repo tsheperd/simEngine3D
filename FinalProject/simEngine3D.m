@@ -418,6 +418,13 @@ classdef simEngine3D < handle
 								obj.input.torques{end+1,1} = obj.input.forces_Applied(AP);
 							elseif obj.input.forces_Applied(AP).type == "TSDA"
 								obj.input.tsda{end+1,1} = obj.input.forces_Applied(AP);
+								% Create a second one with the indicies
+								% flipped for ease later on
+								obj.input.tsda{end+1,1} = obj.input.forces_Applied(AP);
+								obj.input.tsda{end,1}.i = obj.input.tsda{end-1,1}.j;
+								obj.input.tsda{end,1}.j = obj.input.tsda{end-1,1}.i;
+								obj.input.tsda{end,1}.s_i_bar = obj.input.tsda{end-1,1}.s_j_bar;
+								obj.input.tsda{end,1}.s_j_bar = obj.input.tsda{end-1,1}.s_i_bar;
 							end
 						else
 							if obj.input.forces_Applied{AP}.type == "Point_Force"
@@ -426,6 +433,13 @@ classdef simEngine3D < handle
 								obj.input.torques{end+1,1} = obj.input.forces_Applied{AP};
 							elseif obj.input.forces_Applied{AP}.type == "TSDA"
 								obj.input.tsda{end+1,1} = obj.input.forces_Applied{AP};
+								% Create a second one with the indicies
+								% flipped for ease later on
+								obj.input.tsda{end+1,1} = obj.input.forces_Applied{AP};
+								obj.input.tsda{end,1}.i = obj.input.tsda{end-1,1}.j;
+								obj.input.tsda{end,1}.j = obj.input.tsda{end-1,1}.i;
+								obj.input.tsda{end,1}.s_i_bar = obj.input.tsda{end-1,1}.s_j_bar;
+								obj.input.tsda{end,1}.s_j_bar = obj.input.tsda{end-1,1}.s_i_bar;
 							end
 						end
 					end
@@ -544,12 +558,19 @@ classdef simEngine3D < handle
 					% Global P
 					obj.P(i,4*(i-1)+1:4*(i-1)+4) = p_i';
 
+					% Current body mass
 					m_i = obj.m(i,1);
-					F_m_i = m_i*g;
+
+					% Initialize forces
+					F_m_i = zeros(3,1);
 					F_a_i = zeros(3,1);
 
 					n_m_bar_i = zeros(3,1);
 					n_a_bar_i = zeros(3,1);
+
+					% Compute the applied force components from the
+					% input deck
+					[F_m_i, F_a_i, n_m_bar_i, n_a_bar_i] = computeForces(obj, F_m_i, F_a_i, n_m_bar_i, n_a_bar_i, tt, g, i, m_i, r_cm_i, r_i, r_i_dot, p_i, p_i_dot);
 
 					% Calculate the force per body
 					F(3*(i-1)+1:3*(i-1)+3,1) = F_m_i + F_a_i;
@@ -712,13 +733,19 @@ classdef simEngine3D < handle
 				% Global P
 				obj.P(i,4*(i-1)+1:4*(i-1)+4) = p_i';
 				
-				% Forces/torques
+				% Current body mass
 				m_i = obj.m(i,1);
-				F_m_i = m_i*g;
+
+				% Initialize forces
+				F_m_i = zeros(3,1);
 				F_a_i = zeros(3,1);
 
 				n_m_bar_i = zeros(3,1);
 				n_a_bar_i = zeros(3,1);
+
+				% Compute the applied force components from the
+				% input deck
+				[F_m_i, F_a_i, n_m_bar_i, n_a_bar_i] = computeForces(obj, F_m_i, F_a_i, n_m_bar_i, n_a_bar_i, tt, g, i, m_i, r_cm_i, r_i, r_i_dot, p_i, p_i_dot);
 
 				% Calculate the force per body
 				F(3*(i-1)+1:3*(i-1)+3,1) = F_m_i + F_a_i;
@@ -911,12 +938,10 @@ classdef simEngine3D < handle
 						n_m_bar_i = zeros(3,1);
 						n_a_bar_i = zeros(3,1);
 						
+						% Compute the applied force components from the
+						% input deck
+						[F_m_i, F_a_i, n_m_bar_i, n_a_bar_i] = computeForces(obj, F_m_i, F_a_i, n_m_bar_i, n_a_bar_i, tt, g, i, m_i, r_cm_i, r_i, r_i_dot, p_i, p_i_dot);
 						
-						F_m_i = F_m_i + m_i*g;
-					
-						
-						
-
 						% Calculate the force per body
 						F(3*(i-1)+1:3*(i-1)+3,1) = F_m_i + F_a_i;
 
@@ -1082,6 +1107,133 @@ classdef simEngine3D < handle
 			end
 		end
 		
+		
+		%% Function to calculate the applied forces
+		function [F_m_i, F_a_i, n_m_bar_i, n_a_bar_i] = computeForces(obj, F_m_i, F_a_i, n_m_bar_i, n_a_bar_i, tt, g, i, m_i, r_cm_i, r_i, r_i_dot, p_i, p_i_dot);
+			% Mass distributed force (gravity)
+			F_m_i = F_m_i + m_i*g;
+						
+			% Loop over point forces
+			for PF = 1:obj.N_PF
+				% If the point force acts on the current body
+				if obj.input.forces{PF}.i == i
+					% Get the current point force from the input
+					f_curr = [obj.input.forces{PF}.f_x_func(obj.t(tt));...
+							  obj.input.forces{PF}.f_y_func(obj.t(tt));...
+							  obj.input.forces{PF}.f_z_func(obj.t(tt));];
+					% Add it to the applied force vector
+					F_a_i = F_a_i + f_curr;
+
+					% The applied force also creates a torque
+					% (if it is not colinear with the C.M.)
+					% Vector to the point of application
+					s_i_U = r_cm_i + obj.input.forces{PF}.s_i_bar;
+					% Calculate tranformation matrix
+					A_i = A(p_i);
+					% Current Torque
+					n_curr = ToTilde(s_i_U)*A_i'*f_curr;
+					% Add it to the applied torque vector
+					n_a_bar_i = n_a_bar_i + n_curr;
+				end		  
+			end
+
+			% Loop over 'point' torques
+			for PT = 1:obj.N_PT
+				% If the point torque acts on current body
+				if obj.input.torques{PT}.i == i
+					% Get the current point torque from the input
+					n_curr = [obj.input.torques{PT}.tau_x_func(obj.t(tt));...
+							  obj.input.torques{PT}.tau_y_func(obj.t(tt));...
+							  obj.input.torques{PT}.tau_z_func(obj.t(tt));];
+					% Add it to the applied torque vector
+					n_a_bar_i = n_a_bar_i + n_curr;
+				end		  
+			end
+
+			% Loop over TSDAs
+			for TSDA = 1:obj.N_tsda
+				% If the TSDA acts on the current body 
+				if obj.input.tsda{TSDA}.i == i
+					% Grab j
+					j = obj.input.tsda{TSDA}.j;
+
+					% Second body
+					% If the second body is ground
+					if j == 0
+						r_j = [0, 0, 0]';
+						r_j_dot = [0, 0, 0]';
+
+						p_j = [1, 0, 0, 0]';
+						p_j_dot = [0, 0, 0, 0]';
+					% Otherwise coordinates are from q
+					else
+						% Grab the current r, p etc. for body j
+						r_j_idx = 3*(j-1)+1+0:3*(j-1)+3;
+						p_j_idx = 4*(j-1)+1+0:4*(j-1)+4;
+
+						r_j = obj.r(r_j_idx,tt);
+						r_j_dot = obj.r_dot(r_j_idx,tt);
+						r_j_ddot = obj.r_ddot(r_j_idx,tt);
+
+						p_j = obj.p(p_j_idx,tt);
+						p_j_dot = obj.p_dot(p_j_idx,tt);
+						p_j_ddot = obj.p_ddot(p_j_idx,tt);
+					end
+
+					% Calculate tranformation matrices
+					A_i = A(p_i);
+					A_j = A(p_j);
+
+					% Force locations per body
+					s_i_bar = obj.input.tsda{TSDA}.s_i_bar;
+					s_j_bar = obj.input.tsda{TSDA}.s_j_bar;
+
+					% Distance vector between the two points,
+					% from i to j, and its derivative
+					d_ij = r_j + A_j*s_j_bar - r_i - A_i*s_i_bar;
+					d_ij_dot = r_j_dot + B(p_j, s_j_bar)*p_j_dot - r_i_dot - B(p_i, s_i_bar)*p_i_dot;
+
+					% Magnitude lengths (Haug's Book pg 446)
+					l_ij = sqrt(d_ij'*d_ij);
+					if l_ij > 1e-3
+						% Magnitude of time derivative of distance
+						l_ij_dot = (d_ij/l_ij)'*d_ij_dot;
+
+						% Unit vector
+						e_ij = d_ij/l_ij;
+					else
+						% As l_ij -> 0 use L'Hopitals rule
+						% Magnitude of time derivative of distance
+						l_ij_dot = (d_ij_dot/2)'*d_ij_dot;
+
+						% Unit vector
+						e_ij = d_ij_dot/l_ij_dot;
+					end
+
+					l_0 = obj.input.tsda{TSDA}.l_0;
+					k_curr = obj.input.tsda{TSDA}.k;
+					c_curr = obj.input.tsda{TSDA}.c;
+					h_curr = obj.input.tsda{TSDA}.h_func;
+
+					% Get the current force from the input
+					f_curr = k_curr*(l_ij - l_0) + c_curr*l_ij_dot + h_curr(l_ij, l_ij_dot, obj.t(tt));
+					F_curr = f_curr*e_ij;
+
+					% Add it to the applied force vector
+					F_a_i = F_a_i + F_curr;
+
+					% The applied force also creates a torque
+					% (if it is not colinear with the C.M.)
+					% Vector to the point of application
+					s_i_U = r_cm_i + obj.input.tsda{TSDA}.s_i_bar;
+
+					% Current Torque
+					n_curr = ToTilde(s_i_U)*A_i'*f_curr;
+					% Add it to the applied torque vector
+					n_a_bar_i = n_a_bar_i + n_curr;
+				end		  	  
+			end
+		end
 	end
 	%methods(Static)
 	%end

@@ -56,7 +56,7 @@ simulation.ReadInputDeck("revJoint4.mdl");
 
 % Run the kinematic solver: (t_initial, dt, t_final, tolerance)
 %simulation.InverseDynamicsSolver(0, 0.01, 10, 1e-6);
-simulation.DynamicsSolver(0, 0.005, 10, 1e-4);
+simulation.DynamicsSolver(0, 0.01, 10, 1e-4);
 
 
 
