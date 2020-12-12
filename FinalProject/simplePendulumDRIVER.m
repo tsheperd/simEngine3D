@@ -11,7 +11,9 @@ SAVE_PLOTS = 0;
 
 
 %% Solution Type Selection
-case_id = 8;
+% Set this
+case_id = 1;
+
 if case_id == 1
 	SolveType = "Kinematics";
 	name = "kinematic_GCon";
@@ -44,6 +46,14 @@ elseif case_id == 8
 	SolveType = "Dynamics";
 	name = "dynamicsFree_CCon";
 	name_nice = " (Dynamics Free, CCon)";
+elseif case_id == 9
+	SolveType = "Dynamics";
+	name = "dynamicsTorqued_CCon";
+	name_nice = " (Dynamics Torqued, CCon)";
+elseif case_id == 10
+	SolveType = "Dynamics";
+	name = "dynamicsTorqued2_CCon";
+	name_nice = " (Dynamics Torqued 2, CCon)";
 end
 
 
@@ -90,7 +100,7 @@ if SolveType == "Kinematics"
 elseif SolveType == "InverseDynamics"
 	simulation.InverseDynamicsSolver(0, 0.01, 10, 1e-6);
 elseif SolveType == "Dynamics"
-	simulation.DynamicsSolver(0, 0.005, 10, 1e-4);
+	simulation.DynamicsSolver(0, 0.05, 10, 1e-4);
 end
 
 
@@ -259,7 +269,7 @@ if SolveType == "InverseDynamics"
 		ylim([-250, 250]);
 		hold off;
 		if SAVE_PLOTS
-			saveas(gcf,['Torque_Plot_',num2str(i),'_'+name+'.png']);
+			saveas(gcf,"Torque_Plot_"+num2str(i)+"_"+name+".png");
 		end
 	end
 end
@@ -328,7 +338,7 @@ legend('x','y','z');
 ylim([-5.25, 5.25]);
 hold off;
 if SAVE_PLOTS
-	saveas(gcf,'simplePendulum_Q_Analytical_Plot.png');
+	saveas(gcf,'simplePendulum_O_Analytical_Plot.png');
 end
 
 % Analytical Omega plot
@@ -347,6 +357,23 @@ if SAVE_PLOTS
 	saveas(gcf,'simplePendulum_omega_Analytical_Plot.png');
 end
 
+%{
+if case_id == 10
+	figure;
+	theta = atan2(simulation.q(3,:),simulation.q(2,:));
+	for ii=1:length(theta)
+		if theta <0
+			theta=theta+2*pi;
+		end
+	end
+	theta = theta+pi/2;
+	plot(simulation.t,theta)
+
+	figure;
+	theta_anal = 1/2*10/104*simulation.t.^2+pi/4;
+	plot(simulation.t,theta_anal)
+end
+%}
 
 toc;
 %profile viewer

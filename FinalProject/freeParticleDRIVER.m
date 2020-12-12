@@ -155,6 +155,22 @@ if SAVE_PLOTS
 	saveas(gcf,'freeParticle_O_Plot_Analytical.png');
 end
 
+% Quaternian Plot
+figure;
+hold on;
+plot(simulation.t,simulation.t*0+1);
+plot(simulation.t,simulation.t*0);
+plot(simulation.t,simulation.t*0,'-.');
+plot(simulation.t,simulation.t*0,'--');
+title("Free Particle: Quaternian Components (Analytical)");
+xlabel("t (s)");
+ylabel("Quaternian (-)");
+legend('1','2','3','4');
+ylim([-1,2]);
+hold off;
+if SAVE_PLOTS
+	saveas(gcf,'freeParticle_Quaternian_Plot_Analytical.png');
+end
 
 toc;
 %profile viewer

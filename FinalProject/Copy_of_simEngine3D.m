@@ -836,8 +836,18 @@ classdef simEngine3D < handle
 					obj.tau_rxn_bar{i}{j,tt} = -1/2*G(p_i)*(Jacobian_p_i(j,:)'*obj.lambda(j,tt));
 					obj.tau_rxn{i}{j,tt} = A(p_i)*obj.tau_rxn_bar{i}{j,tt} ;
 				end
+				
 			end
 			
+			%{
+			% Compute the velocity violation for the second major joint
+			i = 2;
+			ncon = 6;
+			nppar = 1;			
+			v_v_idx = ncon*(i-1)+1+0:ncon*(i-1)+(ncon-nppar);
+			v_violation_temp = obj.Jacobian_G*obj.q_dot(:,tt) - obj.nu_G;
+			obj.v_violation{i}(tt,1) = norm(v_violation_temp(v_v_idx),2);
+			%}
 			
 			% Create a waitbar
 			WB = waitbar(0, 'Dynamics Solver: Computing');
@@ -975,8 +985,10 @@ classdef simEngine3D < handle
 					% Compute Jacobian_G
 					Global_Phi_nu_gamma_Jacobian(obj, tt, [1, 1, 1, 1]);
 					
+					
 					% Res.
-					% Need 1/(beta_0*h)^pow instead of 1/(beta_0*h)^2
+					% WTF, why does this work? Need 1/(beta_0*h)^pow
+					% instead of 1/(beta_0*h)^2
 					pow = 1.90;
 					g_n =	[obj.M*r_ddot_n + obj.Jacobian_r_G'*lambda_n - F;...
 							 obj.J_P*p_ddot_n + obj.Jacobian_p_G'*lambda_n + obj.P'*lambda_p_n - tau;...
@@ -1045,7 +1057,20 @@ classdef simEngine3D < handle
 						obj.tau_rxn{i}{j,tt} = A(p_i)*obj.tau_rxn_bar{i}{j,tt};
 					end
 				end
-								
+				
+				%{
+				% Compute the velocity violation for each body
+				i = 2;
+				ncon = 6;
+				nppar = 1;			
+				v_v_idx = ncon*(i-1)+1+0:ncon*(i-1)+(ncon-nppar);
+				v_violation_temp = obj.Jacobian_G*obj.q_dot(:,tt) - obj.nu_G;
+				obj.v_violation{i}(tt,1) = norm(v_violation_temp(v_v_idx),2);
+				%obj.v_violation(tt,1) = norm(obj.Jacobian_G*obj.q_dot(:,tt) - obj.nu_G,2);
+				%}
+				
+				%k
+				
 				% Show a progress bar
 				waitbar(tt/obj.N_t, WB, ['Dynamics Solver: Computing (',num2str(PercentComplete,'%.2f'),'%, Iterations: ',num2str(k),')']);
 				

@@ -23,7 +23,76 @@
 		],
 	"constraints_Compound":
 		[
-			
+			{/*----------------------Translational-----------------------*/
+				"name": "Translational_Joint",
+				"id": 1,
+				"type": "Phi_TJ",
+				"GCons":
+					[
+						{/*===Perp1===*/
+							"name": "TJ_DP1_1",
+							"id": 1,
+							"type": "Phi_DP1",
+							"i": 1,
+							"j": 0,
+							"a_i_bar": [1, 0, 0],/*a_i*/
+							"a_j_bar": [0, 0, 1],/*c_j*/
+							"f": "0",
+							"f_dot": "0",
+							"f_ddot": "0"
+						},
+						{
+							"name": "TJ_DP1_2",
+							"id": 2,
+							"type": "Phi_DP1",
+							"i": 1,
+							"j": 0,
+							"a_i_bar": [0, 1, 0],/*b_i*/
+							"a_j_bar": [0, 0, 1],/*c_j*/
+							"f": "0",
+							"f_dot": "0",
+							"f_ddot": "0"
+						},
+						{/*===Perp2===*/
+							"name": "TJ_DP2_1",
+							"id": 3,
+							"type": "Phi_DP2",
+							"i": 1,
+							"j": 0,
+							"a_i_bar": [1, 0, 0],/*a_i*/
+							"s_i_bar": [0, 0, 0],
+							"s_j_bar": [0, 0, 10],
+							"f": "0",
+							"f_dot": "0",
+							"f_ddot": "0"
+						},
+						{
+							"name": "TJ_DP2_2",
+							"id": 4,
+							"type": "Phi_DP2",
+							"i": 1,
+							"j": 0,
+							"a_i_bar": [0, 1, 0],/*b_i*/
+							"s_i_bar": [0, 0, 0],
+							"s_j_bar": [0, 0, 10],
+							"f": "0",
+							"f_dot": "0",
+							"f_ddot": "0"
+						},
+						{/*===DP1===*/
+							"name": "TJ_DP1_1",
+							"id": 5,
+							"type": "Phi_DP1",
+							"i": 1,
+							"j": 0,
+							"a_i_bar": [1, 0, 0],/*a_i*/
+							"a_j_bar": [0, 1, 0],/*a_j*/
+							"f": "0",
+							"f_dot": "0",
+							"f_ddot": "0"
+						}
+					]
+			}
 		],
 	"forces_Applied":
 		[

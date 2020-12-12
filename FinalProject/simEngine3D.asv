@@ -975,6 +975,7 @@ classdef simEngine3D < handle
 					% Compute Jacobian_G
 					Global_Phi_nu_gamma_Jacobian(obj, tt, [1, 1, 1, 1]);
 					
+					
 					% Res.
 					% Need 1/(beta_0*h)^pow instead of 1/(beta_0*h)^2
 					pow = 1.90;
