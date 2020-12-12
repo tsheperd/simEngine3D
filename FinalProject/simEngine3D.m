@@ -76,6 +76,11 @@ classdef simEngine3D < handle
 		N_CCons
 		N_CCons_GCons
 		N_CCons_GCons_tot
+		
+		N_AP
+		N_PF
+		N_PT
+		N_tsda
 	end
 	methods
 		
@@ -387,9 +392,67 @@ classdef simEngine3D < handle
 			
 			obj.Phi_k_G = zeros(obj.N_GCons, 1);
 			obj.Phi_p_G = zeros(obj.N_EPCons, 1);
-        end
-        
-        
+			
+			
+			% Forces and Torques
+			%forces_Applied
+			% Initialization
+			obj.input.forces = {};
+			obj.input.torques = {};
+			obj.input.tsda = {};
+			
+			% Deal with applied forces
+			if isfield(obj.input,'forces_Applied')
+				% Number of applied forces
+				obj.N_AP = size(obj.input.forces_Applied,1);
+
+				% If there are applied forces
+				if obj.N_AP > 0
+					% For each compound constraint extract its GCons
+					for AP = 1:obj.N_AP
+						% JSONDecode is annoying with structs and cells
+						if isstruct(obj.input.forces_Applied(AP))
+							if obj.input.forces_Applied(AP).type == "Point_Force"
+								obj.input.forces{end+1,1} = obj.input.forces_Applied(AP);
+							elseif obj.input.forces_Applied(AP).type == "Point_Torque"
+								obj.input.torques{end+1,1} = obj.input.forces_Applied(AP);
+							elseif obj.input.forces_Applied(AP).type == "TSDA"
+								obj.input.tsda{end+1,1} = obj.input.forces_Applied(AP);
+							end
+						else
+							if obj.input.forces_Applied{AP}.type == "Point_Force"
+								obj.input.forces{end+1,1} = obj.input.forces_Applied{AP};
+							elseif obj.input.forces_Applied{AP}.type == "Point_Torque"
+								obj.input.torques{end+1,1} = obj.input.forces_Applied{AP};
+							elseif obj.input.forces_Applied{AP}.type == "TSDA"
+								obj.input.tsda{end+1,1} = obj.input.forces_Applied{AP};
+							end
+						end
+					end
+				end
+			end
+			
+			% Number of applied forces
+			obj.N_PF = size(obj.input.forces,1);
+			obj.N_PT = size(obj.input.torques,1);
+			obj.N_tsda = size(obj.input.tsda,1);
+
+			% Convert force applications to functions
+			for PF = 1:obj.N_PF
+				obj.input.forces{PF}.f_x_func = str2func(['@(t)', obj.input.forces{PF}.f_x]);
+				obj.input.forces{PF}.f_y_func = str2func(['@(t)', obj.input.forces{PF}.f_y]);
+				obj.input.forces{PF}.f_z_func = str2func(['@(t)', obj.input.forces{PF}.f_z]);
+			end
+			for PT = 1:obj.N_PT
+				obj.input.torques{PT}.tau_x_func = str2func(['@(t)', obj.input.torques{PT}.tau_x]);
+				obj.input.torques{PT}.tau_y_func = str2func(['@(t)', obj.input.torques{PT}.tau_y]);
+				obj.input.torques{PT}.tau_z_func = str2func(['@(t)', obj.input.torques{PT}.tau_z]);
+			end
+			for TSDA = 1:obj.N_tsda
+				obj.input.tsda{TSDA}.h_func = str2func(['@(l_ij,l_ij_dot,t)', obj.input.tsda{TSDA}.h]);
+			end
+		end
+		
 		
 		%% Function to act as the Inverse Dynamics Solver
 		function obj = InverseDynamicsSolver(obj, t_i_temp, dt_temp, t_f_temp, tol_temp)
@@ -836,13 +899,23 @@ classdef simEngine3D < handle
 
 						% Global P
 						obj.P(i,4*(i-1)+1:4*(i-1)+4) = p_i';
-
+						
+						% FORCES WORKING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+						% Current body mass
 						m_i = obj.m(i,1);
-						F_m_i = m_i*g;
+						
+						% Initialize forces
+						F_m_i = zeros(3,1);
 						F_a_i = zeros(3,1);
 
 						n_m_bar_i = zeros(3,1);
 						n_a_bar_i = zeros(3,1);
+						
+						
+						F_m_i = F_m_i + m_i*g;
+					
+						
+						
 
 						% Calculate the force per body
 						F(3*(i-1)+1:3*(i-1)+3,1) = F_m_i + F_a_i;
