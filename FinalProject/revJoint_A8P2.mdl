@@ -30,7 +30,7 @@
 				"r_cm": [0, 0, 0] 
 			}
 		],
-	"constraints":
+	"constraints_GCons":
 		[
 			{
 				"name": "RevJoint_DP1_1",

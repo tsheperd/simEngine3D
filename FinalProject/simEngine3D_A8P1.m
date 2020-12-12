@@ -47,7 +47,10 @@ addpath('./Functions/Constraints');
 simulation = simEngine3D;
 
 % Read the input deck
-simulation.ReadInputDeck("revJoint2.mdl");
+%simulation.ReadInputDeck("revJoint.mdl");
+%simulation.ReadInputDeck("revJoint2.mdl");
+%simulation.ReadInputDeck("revJoint4.mdl");
+simulation.ReadInputDeck("revJoint_2.mdl");
 
 % Run the kinematic solver: (t_initial, dt, t_final, tolerance)
 %simulation.InverseDynamicsSolver(0, 0.01, 10, 1e-6);

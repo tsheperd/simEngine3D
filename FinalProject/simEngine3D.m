@@ -106,14 +106,7 @@ classdef simEngine3D < handle
 			obj.inputDeckFile = inputDeckFile_Mod;
 			
 			% Parse the input as JSON
-			obj.input = jsondecode(obj.inputDeckFile);
-			
-			% Need to convert the contraints to a cell because matlab
-			% sometimes makes them a structure and sometimes a cell but
-			% these are accessed differently
-			if isstruct(obj.input.constraints)
-				struct2cell(obj.input.constraints);
-			end			
+			obj.input = jsondecode(obj.inputDeckFile);	
 		end
 		
 		
@@ -293,6 +286,8 @@ classdef simEngine3D < handle
 				obj.q_dot(7*(i-1)+1:7*(i-1)+7,1) = q_i_dot;
 			end
 			
+			% Initialize GCon constraint 
+			obj.input.constraints = {};
 			
 			% Deal with compound constraints
 			if isfield(obj.input,'constraints_Compound')
@@ -322,6 +317,26 @@ classdef simEngine3D < handle
 
 					% Total number of GCons from compound constraints
 					obj.N_CCons_GCons_tot = sum(obj.N_CCons_GCons);
+				end
+			end
+			
+
+			% Deal with straight geometric constraints
+			if isfield(obj.input,'constraints_GCons')
+				% Number of geometric constraints (GCons)
+				obj.N_GCons = size(obj.input.constraints_GCons,1);
+
+				% If there are geometric constraints extract the GCons
+				if obj.N_GCons > 0
+					% For each compound constraint extract its GCons
+					for GC = 1:obj.N_GCons
+						% JSONDecode is annoying with structs and cells
+						if isstruct(obj.input.constraints_GCons)
+							obj.input.constraints{end+1,1} = obj.input.constraints_GCons(GC);
+						else
+							obj.input.constraints{end+1,1} = obj.input.constraints_GCons{GC};
+						end
+					end
 				end
 			end
 			
