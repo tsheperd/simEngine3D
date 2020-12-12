@@ -1,4 +1,4 @@
-%% simEngine3D_A8P2 Driver Function
+%% Triple Pendulum Driver Function
 clear; close all; clc;
 % Profiler shows the timings, calls, etc.
 %profile on
@@ -23,7 +23,7 @@ e2_ini = ((2*A_ini(2,2)-trace(A_ini)+1)/4)^(1/2)
 e3_ini = ((2*A_ini(3,3)-trace(A_ini)+1)/4)^(1/2)
 p_ini = [e0_ini, e1_ini, e2_ini, e3_ini]
 p_ini_norm = norm(p_ini)
-r_ini = A_ini*[2,0,0]'
+r_ini_bar_1 = A_ini*[2,0,0]'
 
 
 L = 2;
@@ -49,7 +49,36 @@ e2_ini = ((2*A_ini(2,2)-trace(A_ini)+1)/4)^(1/2)
 e3_ini = ((2*A_ini(3,3)-trace(A_ini)+1)/4)^(1/2)
 p_ini = [e0_ini, e1_ini, e2_ini, e3_ini]
 p_ini_norm = norm(p_ini)
-r_ini = A_ini*[1,0,0]'+2*r_ini
+r_ini_bar_2 = A_ini*[1,0,0]'
+r_ini = r_ini_bar_2 + 2*r_ini_bar_1
+
+
+L = 2;
+rho = 7800;
+a = 1*L;
+b = 0.05;
+c = b;
+m = rho*a*b*c
+J_xx_bar = 1/12*m*(b^2 + c^2)
+J_yy_bar = 1/12*m*(a^2 + c^2)
+J_zz_bar = 1/12*m*(a^2 + b^2)
+
+
+% Body 3
+disp('Body 3');
+theta_ini = pi/2+pi/4;
+A_ini = [0,				0,					1;...
+		sin(theta_ini), cos(theta_ini),		0;...
+		-cos(theta_ini), sin(theta_ini),	0;];
+e0_ini = ((trace(A_ini)+1)/4)^(1/2)
+e1_ini = ((2*A_ini(1,1)-trace(A_ini)+1)/4)^(1/2)
+e2_ini = ((2*A_ini(2,2)-trace(A_ini)+1)/4)^(1/2)
+e3_ini = ((2*A_ini(3,3)-trace(A_ini)+1)/4)^(1/2)
+p_ini = [e0_ini, e1_ini, e2_ini, e3_ini]
+p_ini_norm = norm(p_ini)
+r_ini_bar_3 = A_ini*[1,0,0]'
+r_ini = r_ini + r_ini_bar_2 + r_ini_bar_3
+
 
 
 L = 2;
@@ -64,7 +93,6 @@ J_zz_bar = 1/12*m*(a^2 + b^2)
 
 
 
-
 %% Add library of functions to path
 addpath('./Functions');
 addpath('./Functions/Constraints');
@@ -75,11 +103,9 @@ addpath('./Functions/Constraints');
 simulation = simEngine3D;
 
 % Read the input deck
-%simulation.ReadInputDeck("revJoint_A8P2.mdl");
-simulation.ReadInputDeck("revJoint_A8P2_2.mdl");
+simulation.ReadInputDeck("triplePendulumINPUT.mdl");
 
 % Run the kinematic solver: (t_initial, dt, t_final, tolerance)
-%simulation.InverseDynamicsSolver(0, 0.01, 10, 1e-6);
 simulation.DynamicsSolver(0, 0.005, 10, 1e-3);
 
 
@@ -155,7 +181,7 @@ ylabel("acceleration (m/s^2)");
 legend('x','y','z');
 hold off;
 if SAVE_PLOTS
-	saveas(gcf,'Q_Plot.png');
+	saveas(gcf,'triplePendulum_Q_Plot.png');
 end
 
 
@@ -168,7 +194,7 @@ for i = 1:simulation.N_Bodies
 	subplot(3,1,1);
 	hold on;
 	plot(simulation.t,simulation.r(r_idx,:));
-	title(['O Global Position for Body: ',num2str(i)']);
+	title(['Triple Pendulum: O Global Position for Body: ',num2str(i)']);
 	xlabel("t (s)");
 	ylabel("position (m)");
 	legend('x','y','z');
@@ -179,7 +205,7 @@ for i = 1:simulation.N_Bodies
 	subplot(3,1,2);
 	hold on;
 	plot(simulation.t,simulation.r_dot(r_idx,:));
-	title(['O Global Velocity for Body: ',num2str(i)']);
+	title(['Triple Pendulum: O Global Velocity for Body: ',num2str(i)']);
 	xlabel("t (s)");
 	ylabel("velocity (m/s)");
 	legend('x','y','z');
@@ -190,13 +216,13 @@ for i = 1:simulation.N_Bodies
 	subplot(3,1,3);
 	hold on;
 	plot(simulation.t,simulation.r_ddot(r_idx,:));
-	title(['O Global Acceleration for Body: ',num2str(i)']);
+	title(['Triple Pendulum: O Global Acceleration for Body: ',num2str(i)']);
 	xlabel("t (s)");
 	ylabel("acceleration (m/s^2)");
 	legend('x','y','z');
 	hold off;
 	if SAVE_PLOTS
-		saveas(gcf,['O_Body_',num2str(i),'_Plot.png']);
+		saveas(gcf,['triplePendulum_O_Body_',num2str(i),'_Plot.png']);
 	end
 end
 
@@ -230,13 +256,13 @@ for i = 1:simulation.N_Bodies
 	plot(simulation.t,omega{i}(1,:));
 	plot(simulation.t,omega{i}(2,:));
 	plot(simulation.t,omega{i}(3,:));
-	title(['\omega Body ' num2str(i)]);
+	title(['Triple Pendulum: \omega Body ' num2str(i)]);
 	xlabel("t (s)");
 	ylabel("\omega (rad/s)");
 	legend('x','y','z');
 	hold off;
 	if SAVE_PLOTS
-		saveas(gcf,['omega_Body_',num2str(i),'_Plot.png']);
+		saveas(gcf,['triplePendulum_omega_Body_',num2str(i),'_Plot.png']);
 	end
 end
 

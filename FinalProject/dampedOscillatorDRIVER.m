@@ -7,7 +7,7 @@ clear; close all; clc;
 tic;
 
 % Booleans
-SAVE_PLOTS = 0;
+SAVE_PLOTS = 1;
 
 
 %% Initial state
@@ -156,7 +156,7 @@ hold on;
 plot(simulation.t,0*simulation.t);
 plot(simulation.t,0*simulation.t);
 plot(simulation.t,x_anal);
-title("Oscillator: O Global Position (Analytical)");
+title("Damped Oscillator: O Global Position (Analytical)");
 xlabel("t (s)");
 ylabel("position (m)");
 legend('x','y','z');
@@ -169,7 +169,7 @@ hold on;
 plot(simulation.t,0*simulation.t);
 plot(simulation.t,0*simulation.t);
 plot(simulation.t,x_dot_anal);
-title("Oscillator: O Global Velocity (Analytical)");
+title("Damped Oscillator: O Global Velocity (Analytical)");
 xlabel("t (s)");
 ylabel("velocity (m/s)");
 legend('x','y','z');
@@ -182,15 +182,31 @@ hold on;
 plot(simulation.t,0*simulation.t);
 plot(simulation.t,0*simulation.t);
 plot(simulation.t,x_ddot_anal);
-title("Oscillator: O Global Acceleration (Analytical)");
+title("Damped Oscillator: O Global Acceleration (Analytical)");
 xlabel("t (s)");
 ylabel("acceleration (m/s^2)");
 legend('x','y','z');
 hold off;
 if SAVE_PLOTS
-	saveas(gcf,'oscillator_O_Plot_Analytical.png');
+	saveas(gcf,'dampedOscillator_O_Plot_Analytical.png');
 end
 
+% Quaternian Plot
+figure;
+hold on;
+plot(simulation.t,0*simulation.t+1);
+plot(simulation.t,0*simulation.t);
+plot(simulation.t,0*simulation.t,'-.');
+plot(simulation.t,0*simulation.t,'--');
+title("Damped Oscillator: Quaternian Components (Analytical)");
+xlabel("t (s)");
+ylabel("Quaternian (-)");
+legend('1','2','3','4');
+ylim([-1,2]);
+hold off;
+if SAVE_PLOTS
+	saveas(gcf,'dampedOscillator_Quaternian_Plot_Analytical.png');
+end
 
 toc;
 %profile viewer

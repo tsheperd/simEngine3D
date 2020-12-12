@@ -54,6 +54,10 @@ elseif case_id == 10
 	SolveType = "Dynamics";
 	name = "dynamicsTorqued2_CCon";
 	name_nice = " (Dynamics Torqued 2, CCon)";
+elseif case_id == 11
+	SolveType = "Dynamics";
+	name = "dynamicsDistance_GCon";
+	name_nice = " (Dynamics GCon Distance, GCon)";
 end
 
 
@@ -100,7 +104,7 @@ if SolveType == "Kinematics"
 elseif SolveType == "InverseDynamics"
 	simulation.InverseDynamicsSolver(0, 0.01, 10, 1e-6);
 elseif SolveType == "Dynamics"
-	simulation.DynamicsSolver(0, 0.05, 10, 1e-4);
+	simulation.DynamicsSolver(0, 0.005, 10, 1e-4);
 end
 
 

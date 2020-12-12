@@ -170,6 +170,24 @@ if SAVE_PLOTS
 	saveas(gcf,'oscillator_O_Plot_Analytical.png');
 end
 
+% Quaternian Plot
+figure;
+hold on;
+plot(simulation.t,0*simulation.t+1);
+plot(simulation.t,0*simulation.t);
+plot(simulation.t,0*simulation.t,'-.');
+plot(simulation.t,0*simulation.t,'--');
+title("Oscillator: Quaternian Components (Analytical)");
+xlabel("t (s)");
+ylabel("Quaternian (-)");
+legend('1','2','3','4');
+ylim([-1,2]);
+hold off;
+if SAVE_PLOTS
+	saveas(gcf,'oscillator_Quaternian_Plot_Analytical.png');
+end
+
+
 
 toc;
 %profile viewer
