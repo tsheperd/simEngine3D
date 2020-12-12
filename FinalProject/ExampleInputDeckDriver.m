@@ -19,7 +19,6 @@ simulation = simEngine3D;
 
 % Read the input deck
 simulation.ReadInputDeck("TestInputDeck.mdl");
-%simulation.ReadInputDeck("revJoint.mdl");
 
 % Initialize the Solver
 simulation.initializeSolver(0, 0.005, 10, 1e-3)
