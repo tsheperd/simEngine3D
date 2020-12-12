@@ -1,0 +1,32 @@
+{
+	"name": "freeParticle",
+	"gravity": [0, 0, -9.81],
+	"bodies":
+		[
+			{
+				"name": "Body_001",
+				"id": 1,
+				"r": [0, 0, -4],
+				"r_dot": [0, 0, 0],
+				"p": [1, 0, 0, 0],
+				"p_dot": [0, 0, 0, 0],
+				"J_xx_bar": 1.6755,
+				"J_yy_bar": 1.6755,
+				"J_zz_bar": 1.6755,
+				"m": 4.1888,
+				"r_cm": [0, 0, 0] 
+			}
+		],
+	"constraints_GCons":
+		[
+			
+		],
+	"constraints_Compound":
+		[
+			
+		],
+	"forces_Applied":
+		[
+			
+		]
+}

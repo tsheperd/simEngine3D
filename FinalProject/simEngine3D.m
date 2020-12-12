@@ -747,6 +747,7 @@ classdef simEngine3D < handle
 				% input deck
 				[F_m_i, F_a_i, n_m_bar_i, n_a_bar_i] = computeForces(obj, F_m_i, F_a_i, n_m_bar_i, n_a_bar_i, tt, g, i, m_i, r_cm_i, r_i, r_i_dot, p_i, p_i_dot);
 
+				%YYYYY
 				% Calculate the force per body
 				F(3*(i-1)+1:3*(i-1)+3,1) = F_m_i + F_a_i;
 
@@ -1228,7 +1229,7 @@ classdef simEngine3D < handle
 					s_i_U = r_cm_i + obj.input.tsda{TSDA}.s_i_bar;
 
 					% Current Torque
-					n_curr = ToTilde(s_i_U)*A_i'*f_curr;
+					n_curr = ToTilde(s_i_U)*A_i'*F_curr;
 					% Add it to the applied torque vector
 					n_a_bar_i = n_a_bar_i + n_curr;
 				end		  	  

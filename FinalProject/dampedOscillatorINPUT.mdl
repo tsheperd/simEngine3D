@@ -1,0 +1,113 @@
+{
+	"name": "dampedOscillator",
+	"gravity": [0, 0, -9.81],
+	"bodies":
+		[
+			{
+				"name": "Body_001",
+				"id": 1,
+				"r": [0, 0, -4],
+				"r_dot": [0, 0, 0],
+				"p": [1, 0, 0, 0],
+				"p_dot": [0, 0, 0, 0],
+				"J_xx_bar": 1.6755,
+				"J_yy_bar": 1.6755,
+				"J_zz_bar": 1.6755,
+				"m": 4.1888,
+				"r_cm": [0, 0, 0] 
+			}
+		],
+	"constraints_GCons":
+		[
+			
+		],
+	"constraints_Compound":
+		[
+			{/*----------------------Translational-----------------------*/
+				"name": "Translational_Joint",
+				"id": 1,
+				"type": "Phi_TJ",
+				"GCons":
+					[
+						{/*===Perp1===*/
+							"name": "TJ_DP1_1",
+							"id": 1,
+							"type": "Phi_DP1",
+							"i": 1,
+							"j": 0,
+							"a_i_bar": [1, 0, 0],/*a_i*/
+							"a_j_bar": [0, 0, 1],/*c_j*/
+							"f": "0",
+							"f_dot": "0",
+							"f_ddot": "0"
+						},
+						{
+							"name": "TJ_DP1_2",
+							"id": 2,
+							"type": "Phi_DP1",
+							"i": 1,
+							"j": 0,
+							"a_i_bar": [0, 1, 0],/*b_i*/
+							"a_j_bar": [0, 0, 1],/*c_j*/
+							"f": "0",
+							"f_dot": "0",
+							"f_ddot": "0"
+						},
+						{/*===Perp2===*/
+							"name": "TJ_DP2_1",
+							"id": 3,
+							"type": "Phi_DP2",
+							"i": 1,
+							"j": 0,
+							"a_i_bar": [1, 0, 0],/*a_i*/
+							"s_i_bar": [0, 0, 0],
+							"s_j_bar": [0, 0, 10],
+							"f": "0",
+							"f_dot": "0",
+							"f_ddot": "0"
+						},
+						{
+							"name": "TJ_DP2_2",
+							"id": 4,
+							"type": "Phi_DP2",
+							"i": 1,
+							"j": 0,
+							"a_i_bar": [0, 1, 0],/*b_i*/
+							"s_i_bar": [0, 0, 0],
+							"s_j_bar": [0, 0, 10],
+							"f": "0",
+							"f_dot": "0",
+							"f_ddot": "0"
+						},
+						{/*===DP1===*/
+							"name": "TJ_DP1_1",
+							"id": 5,
+							"type": "Phi_DP1",
+							"i": 1,
+							"j": 0,
+							"a_i_bar": [1, 0, 0],/*a_i*/
+							"a_j_bar": [0, 1, 0],/*a_j*/
+							"f": "0",
+							"f_dot": "0",
+							"f_ddot": "0"
+						}
+					]
+			}
+		],
+	"forces_Applied":
+		[
+			{/*----------------------TSDA-----------------------*/
+				"name": "TEST_TSDA",
+				"id": 1,
+				"type": "TSDA",
+				"i": 1,
+				"j": 0,
+				"s_i_bar": [0, 0, 0],
+				"s_j_bar": [0, 0, 0],
+				"k": 5.00,
+				"l_0": 0.00,
+				"c": 1.00,
+				"h": "0"
+			}
+		]
+}
