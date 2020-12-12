@@ -21,6 +21,11 @@ J_zz_bar = J_xx_bar
 
 z_0 = -4;
 g = -9.81;
+m = 4.1888;
+k = 5;
+x0 = z_0;
+v0 = 0;
+c = 0;
 
 
 %% Add library of functions to path
@@ -111,15 +116,25 @@ if SAVE_PLOTS
 	saveas(gcf,'oscillator_Quaternian_Plot.png');
 end
 
-%{
+
 %% Analytical Solution
+ttt = simulation.t;
+x_anal = g.*k.^(-1).*m+k.^(-1).*((-1).*g.*m+k.*x0).*cos(k.^(1/2).*m.^(-1/2) ...
+  .*ttt)+k.^(-1/2).*m.^(1/2).*v0.*sin(k.^(1/2).*m.^(-1/2).*ttt);
+
+x_dot_anal = v0.*cos(k.^(1/2).*m.^(-1/2).*ttt)+(-1).*k.^(-1/2).*m.^(-1/2).*((-1) ...
+  .*g.*m+k.*x0).*sin(k.^(1/2).*m.^(-1/2).*ttt);
+
+x_ddot_anal = (-1).*m.^(-1).*((-1).*g.*m+k.*x0).*cos(k.^(1/2).*m.^(-1/2).*ttt)+( ...
+  -1).*k.^(1/2).*m.^(-1/2).*v0.*sin(k.^(1/2).*m.^(-1/2).*ttt);
+
 % O Position plot
 figure;
 subplot(3,1,1);
 hold on;
 plot(simulation.t,0*simulation.t);
 plot(simulation.t,0*simulation.t);
-plot(simulation.t,-4-1/2*9.81*simulation.t.^2);
+plot(simulation.t,x_anal);
 title("Oscillator: O Global Position (Analytical)");
 xlabel("t (s)");
 ylabel("position (m)");
@@ -132,7 +147,7 @@ subplot(3,1,2);
 hold on;
 plot(simulation.t,0*simulation.t);
 plot(simulation.t,0*simulation.t);
-plot(simulation.t,-9.81*simulation.t);
+plot(simulation.t,x_dot_anal);
 title("Oscillator: O Global Velocity (Analytical)");
 xlabel("t (s)");
 ylabel("velocity (m/s)");
@@ -145,7 +160,7 @@ subplot(3,1,3);
 hold on;
 plot(simulation.t,0*simulation.t);
 plot(simulation.t,0*simulation.t);
-plot(simulation.t,-9.81*ones(size(simulation.t)));
+plot(simulation.t,x_ddot_anal);
 title("Oscillator: O Global Acceleration (Analytical)");
 xlabel("t (s)");
 ylabel("acceleration (m/s^2)");
@@ -154,7 +169,7 @@ hold off;
 if SAVE_PLOTS
 	saveas(gcf,'oscillator_O_Plot_Analytical.png');
 end
-%}
+
 
 toc;
 %profile viewer

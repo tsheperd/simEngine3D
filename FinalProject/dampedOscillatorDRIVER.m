@@ -21,6 +21,11 @@ J_zz_bar = J_xx_bar
 
 z_0 = -4;
 g = -9.81;
+m = 4.1888;
+k = 5;
+x0 = z_0;
+v0 = 0;
+c = 1;
 
 
 %% Add library of functions to path
@@ -111,16 +116,47 @@ if SAVE_PLOTS
 	saveas(gcf,'dampedOscillator_Quaternian_Plot.png');
 end
 
-%{
+
 %% Analytical Solution
+ttt = simulation.t;
+x_anal = g.*k.^(-1).*m+exp(1).^((-1/2).*c.*m.^(-1).*ttt).*(k.^(-1).*((-1).* ...
+  g.*m+k.*x0).*cos((1/2).*m.^(-1).*((-1).*c.^2+4.*k.*m).^(1/2).*ttt)+( ...
+  (-1).*c.^2+4.*k.*m).^(-1/2).*(2.*m.*v0+c.*k.^(-1).*((-1).*g.*m+k.* ...
+  x0)).*sin((1/2).*m.^(-1).*((-1).*c.^2+4.*k.*m).^(1/2).*ttt));
+
+x_dot_anal = exp(1).^((-1/2).*c.*m.^(-1).*ttt).*((1/2).*m.^(-1).*(2.*m.*v0+c.* ...
+  k.^(-1).*((-1).*g.*m+k.*x0)).*cos((1/2).*m.^(-1).*((-1).*c.^2+4.* ...
+  k.*m).^(1/2).*ttt)+(-1/2).*k.^(-1).*m.^(-1).*((-1).*c.^2+4.*k.*m).^( ...
+  1/2).*((-1).*g.*m+k.*x0).*sin((1/2).*m.^(-1).*((-1).*c.^2+4.*k.*m) ...
+  .^(1/2).*ttt))+(-1/2).*c.*exp(1).^((-1/2).*c.*m.^(-1).*ttt).*m.^(-1).* ...
+  (k.^(-1).*((-1).*g.*m+k.*x0).*cos((1/2).*m.^(-1).*((-1).*c.^2+4.* ...
+  k.*m).^(1/2).*ttt)+((-1).*c.^2+4.*k.*m).^(-1/2).*(2.*m.*v0+c.*k.^( ...
+  -1).*((-1).*g.*m+k.*x0)).*sin((1/2).*m.^(-1).*((-1).*c.^2+4.*k.*m) ...
+  .^(1/2).*ttt));
+
+x_ddot_anal = (-1).*c.*exp(1).^((-1/2).*c.*m.^(-1).*ttt).*m.^(-1).*((1/2).*m.^(-1) ...
+  .*(2.*m.*v0+c.*k.^(-1).*((-1).*g.*m+k.*x0)).*cos((1/2).*m.^(-1).*( ...
+  (-1).*c.^2+4.*k.*m).^(1/2).*ttt)+(-1/2).*k.^(-1).*m.^(-1).*((-1).* ...
+  c.^2+4.*k.*m).^(1/2).*((-1).*g.*m+k.*x0).*sin((1/2).*m.^(-1).*(( ...
+  -1).*c.^2+4.*k.*m).^(1/2).*ttt))+(1/4).*c.^2.*exp(1).^((-1/2).*c.* ...
+  m.^(-1).*ttt).*m.^(-2).*(k.^(-1).*((-1).*g.*m+k.*x0).*cos((1/2).* ...
+  m.^(-1).*((-1).*c.^2+4.*k.*m).^(1/2).*ttt)+((-1).*c.^2+4.*k.*m).^( ...
+  -1/2).*(2.*m.*v0+c.*k.^(-1).*((-1).*g.*m+k.*x0)).*sin((1/2).*m.^( ...
+  -1).*((-1).*c.^2+4.*k.*m).^(1/2).*ttt))+exp(1).^((-1/2).*c.*m.^(-1) ...
+  .*ttt).*((-1/4).*k.^(-1).*m.^(-2).*((-1).*c.^2+4.*k.*m).*((-1).*g.* ...
+  m+k.*x0).*cos((1/2).*m.^(-1).*((-1).*c.^2+4.*k.*m).^(1/2).*ttt)+( ...
+  -1/4).*m.^(-2).*((-1).*c.^2+4.*k.*m).^(1/2).*(2.*m.*v0+c.*k.^(-1) ...
+  .*((-1).*g.*m+k.*x0)).*sin((1/2).*m.^(-1).*((-1).*c.^2+4.*k.*m).^( ...
+  1/2).*ttt));
+
 % O Position plot
 figure;
 subplot(3,1,1);
 hold on;
 plot(simulation.t,0*simulation.t);
 plot(simulation.t,0*simulation.t);
-plot(simulation.t,-4-1/2*9.81*simulation.t.^2);
-title("Damped Oscillator: O Global Position (Analytical)");
+plot(simulation.t,x_anal);
+title("Oscillator: O Global Position (Analytical)");
 xlabel("t (s)");
 ylabel("position (m)");
 legend('x','y','z');
@@ -132,8 +168,8 @@ subplot(3,1,2);
 hold on;
 plot(simulation.t,0*simulation.t);
 plot(simulation.t,0*simulation.t);
-plot(simulation.t,-9.81*simulation.t);
-title("Damped Oscillator: O Global Velocity (Analytical)");
+plot(simulation.t,x_dot_anal);
+title("Oscillator: O Global Velocity (Analytical)");
 xlabel("t (s)");
 ylabel("velocity (m/s)");
 legend('x','y','z');
@@ -145,16 +181,16 @@ subplot(3,1,3);
 hold on;
 plot(simulation.t,0*simulation.t);
 plot(simulation.t,0*simulation.t);
-plot(simulation.t,-9.81*ones(size(simulation.t)));
-title("Damped Oscillator: O Global Acceleration (Analytical)");
+plot(simulation.t,x_ddot_anal);
+title("Oscillator: O Global Acceleration (Analytical)");
 xlabel("t (s)");
 ylabel("acceleration (m/s^2)");
 legend('x','y','z');
 hold off;
 if SAVE_PLOTS
-	saveas(gcf,'dampedOscillator_O_Plot_Analytical.png');
+	saveas(gcf,'oscillator_O_Plot_Analytical.png');
 end
-%}
+
 
 toc;
 %profile viewer

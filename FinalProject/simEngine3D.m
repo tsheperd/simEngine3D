@@ -128,6 +128,9 @@ classdef simEngine3D < handle
 			
 			% Get Phi_G, nu_G, gamma_G, Jacobian_G
 			for tt = 1:obj.N_t
+				% Percent Complete
+				PercentComplete = tt/obj.N_t*100;
+				
 				if tt > 1
 					% For all but the first timestep the initial guess for
 					% q and q_dot are obtained from the previous time step
@@ -172,7 +175,10 @@ classdef simEngine3D < handle
 				obj.q_ddot(:,tt) = obj.Jacobian_G\obj.gamma_G;
 				
 				% Show a progress bar
-				waitbar(tt/obj.N_t, WB, 'Kinematic Solver: Computing');
+				%waitbar(tt/obj.N_t, WB, 'Kinematic Solver: Computing');
+				waitbar(tt/obj.N_t, WB, ['Kinematic Solver: Computing (',num2str(PercentComplete,'%.2f'),'%, Iterations: ',num2str(k),')']);
+				
+				q2rp(obj,tt,[1,1,1]);
 			end
 			
 			% Close the waitbar
@@ -839,9 +845,9 @@ classdef simEngine3D < handle
 				obj.lambda_p(:,tt) = obj.lambda_p(:,tt-1);
 				obj.lambda(:,tt) = obj.lambda(:,tt-1);
 				
-				% Calculate the BDF coefficients (Use only BDF1 for this
-				% problem)
-                if 1%n == 2
+				% Calculate the BDF coefficients
+                %if 1%n == 2(Use only BDF1 for this problem)
+				if n == 2
                     % For the first calculation use a BDF 1
                     % Parameters from the BDF table
                     alpha_1 = -1;
@@ -928,7 +934,6 @@ classdef simEngine3D < handle
 						% Global P
 						obj.P(i,4*(i-1)+1:4*(i-1)+4) = p_i';
 						
-						% FORCES WORKING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 						% Current body mass
 						m_i = obj.m(i,1);
 						
